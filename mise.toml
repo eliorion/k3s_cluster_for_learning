@@ -1,4 +1,7 @@
 [tools]
 kubectl = "latest"
 k9s = "latest"
+kubens = "latest"
+cloudflared = "latest"
 flux2  = "latest"
+
