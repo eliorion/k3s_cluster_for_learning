@@ -1,2 +1,4 @@
 *.envrc
+*.json
+*.pem
 kubeconfig
