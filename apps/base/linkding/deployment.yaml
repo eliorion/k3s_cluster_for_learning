@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: linkding
-  namespace: linkding
 spec:
   replicas: 1
   selector:
@@ -17,22 +16,20 @@ spec:
         fsGroup: 33 # www-data group ID
         runAsUser: 33 # www-data user ID
         runAsGroup: 33 # www-data group ID
-      
+
       containers:
         - name: linkding
-          image: sissbruecker/linkding:1.45.0
+          image: sissbruecker/linkding:1.31.0
           ports:
             - containerPort: 9090
-          
+
           securityContext:
             allowPrivilegeEscalation: false
 
           volumeMounts:
-            - mountPath: /etc/linkding/data
-              name: linkding-data
-
+            - name: linkding-data
+              mountPath: /etc/linkding/data
       volumes:
         - name: linkding-data
           persistentVolumeClaim:
             claimName: linkding-data-pvc
-
