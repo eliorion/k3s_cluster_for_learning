@@ -5,7 +5,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: k3s-cluster-for-learning.eliorion.fr
+    - host: k3s-linkding.eliorion.fr
       http:
         paths:
           - backend:
