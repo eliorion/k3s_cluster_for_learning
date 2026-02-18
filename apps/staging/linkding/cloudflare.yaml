@@ -79,7 +79,7 @@ data:
     no-autoupdate: true
 
     ingress:
-    - hostname: k3s_cluster_for_learning.eliorion.fr
+    - hostname: k3s-cluster-for-learning.eliorion.fr
       service: http://linkding:9090
 
     # This rule sends traffic to the built-in hello-world HTTP server. This can help debug connectivity
