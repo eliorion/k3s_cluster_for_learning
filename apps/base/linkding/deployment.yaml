@@ -13,16 +13,19 @@ spec:
       labels:
         app: linkding
     spec:
-     # securityContext:
-       # fsGroup: 33 # www-data group ID
-       # runAsUser: 33 # www-data user ID
-       # runAsGroup: 33 # www-data group ID
+      securityContext:
+        fsGroup: 33 # www-data group ID
+        runAsUser: 33 # www-data user ID
+        runAsGroup: 33 # www-data group ID
 
       containers:
         - name: linkding
           image: sissbruecker/linkding:1.45.0
           ports:
             - containerPort: 9090
+          envFrom:
+            secretRef:
+              name: linkding-adm-user
 
           securityContext:
             allowPrivilegeEscalation: false
@@ -34,3 +37,7 @@ spec:
         - name: linkding-data
           persistentVolumeClaim:
             claimName: linkding-data-pvc
+
+        - name: linkding-adm-user
+          secret:
+            secretName: linkding-secret
