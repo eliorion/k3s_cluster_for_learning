@@ -24,7 +24,7 @@ spec:
           ports:
             - containerPort: 9090
           envFrom:
-            secretRef:
+          - secretRef:
               name: linkding-adm-user
 
           securityContext:
