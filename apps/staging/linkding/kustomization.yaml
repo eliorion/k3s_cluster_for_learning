@@ -3,4 +3,5 @@ kind: Kustomization
 resources:
   - ../../base/linkding/
   - cloudflare.yaml
+  - cloudflare_tunnel.yaml
   - secret.yaml
