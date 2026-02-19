@@ -35,7 +35,7 @@ spec:
         enabled: true
         ingressClassName: traefix
         hosts:
-          -  grafana.k3s.eliorion.fr
+          - grafana-k3s.eliorion.fr
         paths:
           - /
 #        tls:
