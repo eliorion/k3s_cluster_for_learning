@@ -3,3 +3,4 @@
 *.pem
 kubeconfig
 *.agekey
+tls.*
