@@ -4,15 +4,15 @@ This project is the result of the KubeCraft homelab OS cours.
 
 ## Requirements
 
-- [] Knows linux fondamentals
-- [] Knows container fondamentals (container, docker)
-- [] Knows Kubernetes fondamentals (pods, deployment, service, ingress, ...)
-- [] Knows `kubectl` (how to check ressource, generet chart, logging, deboging, ...)
-- [] Knows `flux` and the GitOps fondamentals
+- [ ] Knows linux fondamentals
+- [ ] Knows container fondamentals (container, docker)
+- [ ] Knows Kubernetes fondamentals (pods, deployment, service, ingress, ...)
+- [ ] Knows `kubectl` (how to check ressource, generet chart, logging, deboging, ...)
+- [ ] Knows `flux` and the GitOps fondamentals
 
 Bonus:
-- [] Knows devcontainer
-- [] Knows DevPod (devcontainer manager)
+- [ ] Knows devcontainer
+- [ ] Knows DevPod (devcontainer manager)
 
 ## Documentation summary
 
