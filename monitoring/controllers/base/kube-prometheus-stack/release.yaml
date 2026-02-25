@@ -36,9 +36,7 @@ spec:
         ingressClassName: traefix
         hosts:
           - grafana-k3s.eliorion.fr
-        paths:
-          - /
-        tls:
-          - secretName: grafana-tls-secret
-            hosts:
-              - grafana-k3s.eliorion.fr
+        #tls:
+        #  - secretName: grafana-tls-secret
+        #    hosts:
+        #      - grafana-k3s.eliorion.fr
