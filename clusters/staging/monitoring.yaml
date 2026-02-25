@@ -25,7 +25,7 @@ spec:
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
-  name: monitoring-config
+  name: monitoring-configs
   namespace: flux-system
 spec:
   interval: 1m0s
