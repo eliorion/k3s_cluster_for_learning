@@ -15,10 +15,10 @@ spec:
   path: ./monitoring/controllers/staging
   prune: true
 
-  decryption:
-    provider: sops
-    secretRef:
-      name: sops-age
+  #decryption:
+  #  provider: sops
+  #  secretRef:
+  #    name: sops-age
 
 ---
 
