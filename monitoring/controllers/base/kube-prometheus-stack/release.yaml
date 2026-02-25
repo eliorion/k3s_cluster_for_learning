@@ -33,7 +33,7 @@ spec:
       adminPassword: skh
       ingress:
         enabled: true
-        ingressClassName: traefix
+        ingressClassName: traefik
         hosts:
           - grafana-k3s.eliorion.fr
         #tls:
