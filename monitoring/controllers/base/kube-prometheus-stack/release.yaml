@@ -41,4 +41,4 @@ spec:
         tls:
           - secretName: grafana-tls-secret
             hosts:
-              - grafana.k3s.eliorion.fr
+              - grafana-k3s.eliorion.fr
