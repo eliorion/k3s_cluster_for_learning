@@ -62,6 +62,9 @@ spec:
             claimName: glpi-db-data-pvc
 
 
-        - name: glpi-adm-user
+        - name: glpi-db-secret
+          secret:
+            secretName: glpi-db-secret
+        - name: glpi-secret
           secret:
             secretName: glpi-secret
