@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: glpi
+  namespace: glpi
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: glpi
+  template:
+    metadata:
+      labels:
+        app: glpi
+    spec:
+      #securityContext:
+      #  fsGroup: 33 # www-data group ID
+      #  runAsUser: 33 # www-data user ID
+      #  runAsGroup: 33 # www-data group ID
+
+      containers:
+        - name: glpi
+          image: glpi/glpi:11.0.1
+          ports:
+            - containerPort: 80
+          envFrom:
+          - configMapRef:
+              name: glpi-configmap
+          - secretRef:
+              name: glpi-secret
+
+          #securityContext:
+          #  allowPrivilegeEscalation: false
+
+          volumeMounts:
+            - name: glpi-config
+              mountPath: /var/glpi
+
+        - name: db
+          image: library/mariadb:11.8
+          #ports:
+          #  - containerPort: 3306
+          envFrom:
+          - configMapRef:
+              name: glpi-db-configmap
+          - secretRef:
+              name: glpi-db-secret
+
+          #securityContext:
+          #  allowPrivilegeEscalation: false
+
+          volumeMounts:
+            - name: glpi-db-data
+              mountPath: /var/lib/mysql
+
+      volumes:
+        - name: glpi-config
+          persistentVolumeClaim:
+            claimName: glpi-config-pvc
+        - name: glpi-db-data
+          persistentVolumeClaim:
+            claimName: glpi-db-data-pvc
+
+
+        - name: glpi-adm-user
+          secret:
+            secretName: glpi-secret
