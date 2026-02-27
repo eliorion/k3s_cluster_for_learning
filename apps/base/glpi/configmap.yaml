@@ -16,5 +16,6 @@ metadata:
   name: glpi-db-configmap
   namespace: glpi
 data:
+  MARIADB_RANDOM_ROOT_PASSWORD: "yes"
   MARIADB_DATABASE: "glpi_db"
   MARIADB_USER: "glpi"
