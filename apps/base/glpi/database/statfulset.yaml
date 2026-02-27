@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: glpi
+  name: glpi-db
   namespace: glpi
 spec:
   replicas: 1
@@ -11,7 +11,7 @@ spec:
   template:
     metadata:
       labels:
-        app: glpi
+        app: glpi-db
     spec:
       #securityContext:
       #  fsGroup: 999 # www-data group ID
@@ -19,7 +19,7 @@ spec:
       #  runAsGroup: 999 # www-data group ID
 
       containers:
-        - name: db
+        - name: glpi-db
           image: library/mariadb:11.8
           ports:
             - containerPort: 3306
