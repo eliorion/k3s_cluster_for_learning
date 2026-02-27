@@ -31,29 +31,29 @@ spec:
           #  allowPrivilegeEscalation: false
           volumeMounts:
             - name: audiobookshelf-config
-              mountPath: /mnt/audiobookshelf/data/config
-            - name: audiobookshelf-audiobooks
-              mountPath: /mnt/audiobookshelf/data/audiobooks
-            - name: audiobookshelf-podcasts
-              mountPath: /mnt/audiobookshelf/data/podcasts
+              mountPath: /config
+            #- name: audiobookshelf-audiobooks
+            #  mountPath: /mnt/audiobookshelf/data/audiobooks
+            # - name: audiobookshelf-podcasts
+            #  mountPath: /mnt/audiobookshelf/data/podcasts
             - name: audiobookshelf-metadata
-              mountPath: /mnt/audiobookshelf/data/metadata
-            - name: audiobookshelf-books
-              mountPath: /mnt/audiobookshelf/data/books
+              mountPath: /metadata
+            - name: audiobookshelf-app
+              mountPath: /app
 
       volumes:
         - name: audiobookshelf-config
           persistentVolumeClaim:
             claimName: audiobookshelf-config-pvc
-        - name: audiobookshelf-audiobooks
-          persistentVolumeClaim:
-            claimName: audiobookshelf-audiobooks-pvc
-        - name: audiobookshelf-podcasts
-          persistentVolumeClaim:
-            claimName: audiobookshelf-podcasts-pvc
+        #- name: audiobookshelf-audiobooks
+        #  persistentVolumeClaim:
+        #    claimName: audiobookshelf-audiobooks-pvc
+        #- name: audiobookshelf-podcasts
+        #  persistentVolumeClaim:
+        #    claimName: audiobookshelf-podcasts-pvc
         - name: audiobookshelf-metadata
           persistentVolumeClaim:
             claimName: audiobookshelf-metadata-pvc
-        - name: audiobookshelf-books
+        - name: audiobookshelf-app
           persistentVolumeClaim:
-            claimName: audiobookshelf-books-pvc
+            claimName: audiobookshelf-app-pvc
