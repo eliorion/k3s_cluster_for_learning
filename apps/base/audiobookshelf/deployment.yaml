@@ -32,16 +32,12 @@ spec:
           volumeMounts:
             - name: audiobookshelf-config
               mountPath: /mnt/audiobookshelf/data/config
-          volumeMounts:
             - name: audiobookshelf-audiobooks
               mountPath: /mnt/audiobookshelf/data/audiobooks
-          volumeMounts:
             - name: audiobookshelf-podcasts
               mountPath: /mnt/audiobookshelf/data/podcasts
-          volumeMounts:
             - name: audiobookshelf-metadata
               mountPath: /mnt/audiobookshelf/data/metadata
-          volumeMounts:
             - name: audiobookshelf-books
               mountPath: /mnt/audiobookshelf/data/books
 
