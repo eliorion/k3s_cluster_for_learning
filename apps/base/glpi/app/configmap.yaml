@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: glpi-configmap
+  namespace: glpi
+data:
+  TIMEZONE: "Europe/Paris"
+  GLPI_DB_PORT: "3306"
+  GLPI_DB_HOST: "glpi-db"
+  GLPI_DB_NAME: "glpi_db"
+  GLPI_DB_USER: "glpi"

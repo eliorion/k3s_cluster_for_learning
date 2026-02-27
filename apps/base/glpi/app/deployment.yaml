@@ -36,35 +36,11 @@ spec:
             - name: glpi-config
               mountPath: /var/glpi
 
-        - name: db
-          image: library/mariadb:11.8
-          ports:
-            - containerPort: 3306
-          envFrom:
-          - configMapRef:
-              name: glpi-db-configmap
-          - secretRef:
-              name: glpi-db-secret
-
-          #securityContext:
-          #  allowPrivilegeEscalation: false
-
-          volumeMounts:
-            - name: glpi-db-data
-              mountPath: /var/lib/mysql
-
       volumes:
         - name: glpi-config
           persistentVolumeClaim:
             claimName: glpi-config-pvc
-        - name: glpi-db-data
-          persistentVolumeClaim:
-            claimName: glpi-db-data-pvc
 
-
-        - name: glpi-db-secret
-          secret:
-            secretName: glpi-db-secret
         - name: glpi-secret
           secret:
             secretName: glpi-secret

@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: glpi-db
+  namespace: glpi
+spec:
+  ports:
+    - port: 8080
+      containerPort: 80
+  selector:
+    app: glpi-db
