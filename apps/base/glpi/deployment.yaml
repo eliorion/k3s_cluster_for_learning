@@ -38,8 +38,8 @@ spec:
 
         - name: db
           image: library/mariadb:11.8
-          #ports:
-          #  - containerPort: 3306
+          ports:
+            - containerPort: 3306
           envFrom:
           - configMapRef:
               name: glpi-db-configmap
