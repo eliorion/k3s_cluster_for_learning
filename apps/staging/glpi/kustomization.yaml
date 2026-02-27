@@ -4,5 +4,3 @@ namespace: glpi
 resources:
   - ../../base/glpi/
   - glpi-secret.yaml
-  - glpi-db-secret.yaml
-
