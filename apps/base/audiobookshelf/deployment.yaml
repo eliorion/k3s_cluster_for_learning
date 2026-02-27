@@ -38,8 +38,8 @@ spec:
             #  mountPath: /mnt/audiobookshelf/data/podcasts
             - name: audiobookshelf-metadata
               mountPath: /metadata
-            - name: audiobookshelf-app
-              mountPath: /app
+            #- name: audiobookshelf-app
+            #  mountPath: /app
 
       volumes:
         - name: audiobookshelf-config
