@@ -8,15 +8,15 @@ data:
   # Respect the proxy headers forwarded by the reverse proxy
   # In a production environment, verify which proxy type you are using, and restrict access to Keycloak
   # from other sources than your proxy if you continue to use proxy headers.
-  KC_PROXY_HEADERS=xforwarded
-  KC_HTTP_ENABLED=true
+  KC_PROXY_HEADERS: xforwarded
+  KC_HTTP_ENABLED: true
   # In this explorative setup, no strict hostname is set.
   # For production environments, set a hostname for a secure setup.
-  KC_HOSTNAME_STRICT=false
-  KC_HEALTH_ENABLED=true
-  KC_CACHE=ispn
+  KC_HOSTNAME_STRICT: false
+  KC_HEALTH_ENABLED: true
+  KC_CACHE: ispn
 
   # DB database
-  KC_DB_URL_DATABASE=keycloak
-  KC_DB_URL_HOST=postgres
-  KC_DB=postgres
+  KC_DB_URL_DATABASE: keycloak
+  KC_DB_URL_HOST: postgres
+  KC_DB: postgres
