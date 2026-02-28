@@ -3,5 +3,5 @@ kind: ConfigMap
 metadata:
   name: postgres-configmap
 data:
-	POSTGRES_DB=keycloak
-	POSTGRES_LOG_STATEMENT=all
+  POSTGRES_DB=keycloak
+  POSTGRES_LOG_STATEMENT=all
