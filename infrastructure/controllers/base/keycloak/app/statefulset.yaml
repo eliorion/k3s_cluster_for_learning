@@ -21,7 +21,7 @@ spec:
       containers:
         - name: keycloak
           image: quay.io/keycloak/keycloak:26.5.4
-          args: ["start"]
+          args: ["start-dev"]
           envFrom:
           - configMapRef:
               name: postgres-configmap
