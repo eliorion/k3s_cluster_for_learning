@@ -13,7 +13,7 @@ data:
   # In this explorative setup, no strict hostname is set.
   # For production environments, set a hostname for a secure setup.
   KC_HOSTNAME_STRICT: "false"
-  KC_HEALTH_ENABLED: true
+  KC_HEALTH_ENABLED: "true"
   KC_CACHE: ispn
 
   # DB database
