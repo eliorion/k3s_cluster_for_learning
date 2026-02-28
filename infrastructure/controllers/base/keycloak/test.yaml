@@ -99,24 +99,24 @@ spec:
               containerPort: 7800
             - name: jgroups-fd
               containerPort: 57800
-          #startupProbe:
-          #  httpGet:
-          #    path: /health/started
-          #    port: 9000
-          #  periodSeconds: 1
-          #  failureThreshold: 600
-          #readinessProbe:
-          #  httpGet:
-          #    path: /health/ready
-          #    port: 9000
-          #  periodSeconds: 10
-          #  failureThreshold: 3
-          #livenessProbe:
-          #  httpGet:
-          #    path: /health/live
-          #    port: 9000
-          #  periodSeconds: 10
-          #  failureThreshold: 3
+          startupProbe:
+            httpGet:
+              path: /health/started
+              port: 9000
+            periodSeconds: 1
+            failureThreshold: 600
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 9000
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 9000
+            periodSeconds: 10
+            failureThreshold: 3
           #resources:
           #  limits:
           #    cpu: 2000m
