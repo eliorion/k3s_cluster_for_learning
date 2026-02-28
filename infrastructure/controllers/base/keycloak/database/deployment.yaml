@@ -18,10 +18,10 @@ spec:
         - name: postgres
           image: mirror.gcr.io/postgres:17
           envFrom:
-          - configMapRef:
-            name: postgres-configmap
-          - secretRef:
-            name: postgres-secret
+            - configMapRef:
+              name: postgres-configmap
+            - secretRef:
+              name: postgres-secret
           ports:
             - name: postgres
               containerPort: 5432
