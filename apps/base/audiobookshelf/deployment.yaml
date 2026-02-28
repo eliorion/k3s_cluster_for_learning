@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: audiobookshelf
-  namespace: audiobookshelf
 spec:
   replicas: 1
   selector:
@@ -26,7 +25,6 @@ spec:
           envFrom:
           - configMapRef:
               name: audiobookshelf-configmap
-
           securityContext:
             allowPrivilegeEscalation: false
           volumeMounts:
@@ -34,17 +32,16 @@ spec:
               mountPath: /config
             - name: audiobookshelf-metadata
               mountPath: /metadata
-            - name: audiobookshelf-data
-              mountPath: /data
-
-
+            - name: audiobookshelf-books
+              mountPath: /books
+      restartPolicy: Always
       volumes:
         - name: audiobookshelf-config
           persistentVolumeClaim:
             claimName: audiobookshelf-config-pvc
         - name: audiobookshelf-data
           persistentVolumeClaim:
-            claimName: audiobookshelf-data-pvc
+            claimName: audiobookshelf-books-pvc
         - name: audiobookshelf-metadata
           persistentVolumeClaim:
             claimName: audiobookshelf-metadata-pvc
