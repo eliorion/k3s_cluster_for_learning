@@ -3,6 +3,6 @@ kind: Kustomization
 namespace: identity
 resources:
   - test.yaml
-#  - ../../base/keycloak/
+  - ../../base/keycloak/
 #  - app/
 #  - database/
