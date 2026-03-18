@@ -3,6 +3,11 @@
     "context": "..",
     "dockerfile": "Dockerfile"
   },
+  "containerEnv": {
+    "GITHUB_TOKEN": "${localEnv:GITHUB_TOKEN}"
+  },
   "postCreateCommand": "scripts/setup",
-  "forwardPorts": [8080],
+  "forwardPorts": [
+    8080
+  ],
 }

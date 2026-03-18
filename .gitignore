@@ -4,3 +4,4 @@
 kubeconfig
 *.agekey
 tls.*
+*.DS_Store
