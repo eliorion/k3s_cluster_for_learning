@@ -9,6 +9,7 @@ resources:
   - orchestrator-secrets.enc.yaml
   - content-scraper-secrets.enc.yaml
   - url-crawler-secrets.enc.yaml
+  - ghcr-pull-secret.enc.yaml
 
 images:
   - name: asp-scraper
@@ -34,3 +35,25 @@ patches:
       - op: replace
         path: /spec/template/spec/containers/0/readinessProbe/exec/command
         value: ["pg_isready", "-U", "asp_ads", "-d", "automarket"]
+  # Pull the private GHCR images (ghcr.io/eliorion/asp-*). postgres uses a public image.
+  - target:
+      kind: Deployment
+      name: orchestrator
+    patch: |-
+      - op: add
+        path: /spec/template/spec/imagePullSecrets
+        value: [{name: ghcr-pull-secret}]
+  - target:
+      kind: Deployment
+      name: content-scraper
+    patch: |-
+      - op: add
+        path: /spec/template/spec/imagePullSecrets
+        value: [{name: ghcr-pull-secret}]
+  - target:
+      kind: Deployment
+      name: url-crawler
+    patch: |-
+      - op: add
+        path: /spec/template/spec/imagePullSecrets
+        value: [{name: ghcr-pull-secret}]
