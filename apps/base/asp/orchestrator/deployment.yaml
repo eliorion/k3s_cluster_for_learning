@@ -32,8 +32,8 @@ spec:
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
-                  name: orchestrator-secrets
-                  key: database-url
+                  name: asp-db-app
+                  key: uri
             - name: ADMIN_UI_TOKEN
               valueFrom:
                 secretKeyRef:

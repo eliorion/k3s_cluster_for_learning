@@ -7,8 +7,6 @@ resources:
   - ../../base/asp
   - db-secrets.enc.yaml
   - orchestrator-secrets.enc.yaml
-  - content-scraper-secrets.enc.yaml
-  - url-crawler-secrets.enc.yaml
   - ghcr-pull-secret.enc.yaml
 
 images:

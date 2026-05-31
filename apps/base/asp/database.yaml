@@ -7,8 +7,6 @@ spec:
   bootstrap:
     initdb:
       database: automarket
-      owner: asp-adb
-      secret:
-        name: asp-db-credentials
+      owner: app
   storage:
-    size: 1Gi
+    size: 10Gi
