@@ -6,8 +6,8 @@ spec:
   instances: 3
   bootstrap:
     initdb:
-      database: asp
-      owner: asp
+      database: automarket
+      owner: asp-adb
       secret:
         name: asp-db-credentials
   storage:
