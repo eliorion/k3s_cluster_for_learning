@@ -17,7 +17,7 @@ images:
     newTag: "scraper-v0.4.0"
   - name: asp-orchestrator
     newName: ghcr.io/eliorion/asp-orchestrator
-    newTag: "orchestrator-v0.2"
+    newTag: "orchestrator-v0.2.0"
 
 patches:
   # Staging DB user is asp_ads (base default is automarket; base is shared with dev).
