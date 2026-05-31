@@ -23,8 +23,8 @@ spec:
           ports:
             - containerPort: 80
           envFrom:
-          - configMapRef:
-              name: audiobookshelf-configmap
+            - configMapRef:
+                name: audiobookshelf-configmap
           securityContext:
             allowPrivilegeEscalation: false
           volumeMounts:
@@ -39,9 +39,9 @@ spec:
         - name: audiobookshelf-config
           persistentVolumeClaim:
             claimName: audiobookshelf-config-pvc
-        - name: audiobookshelf-data
-          persistentVolumeClaim:
-            claimName: audiobookshelf-books-pvc
         - name: audiobookshelf-metadata
           persistentVolumeClaim:
             claimName: audiobookshelf-metadata-pvc
+        - name: audiobookshelf-books
+          persistentVolumeClaim:
+            claimName: audiobookshelf-books-pvc
