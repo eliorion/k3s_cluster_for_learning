@@ -25,7 +25,7 @@ data:
     - hostname: k3s-glpi.eliorion.fr
       service: http://glpi.glpi.svc.cluster.local:8080
     - hostname: asp-admin.eliorion.fr
-      service: http://asp.orchestration.svc.cluster.local:8501
+      service: http://orchestrator.asp.svc.cluster.local:8501
 
     # This rule sends traffic to the built-in hello-world HTTP server. This can help debug connectivity
     # issues. If hello.example.com resolves and tunnel.example.com does not, then the problem is
