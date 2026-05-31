@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: content-scraper
+  namespace: asp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: content-scraper
+  template:
+    metadata:
+      labels:
+        app: content-scraper
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+        - name: content-scraper
+          image: asp-scraper
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: WORKER_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: content-scraper-secrets
+                  key: database-url
+          envFrom:
+            - configMapRef:
+                name: content-scraper-config
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              # Camoufox headless Firefox peaks above 1Gi when rendering a
+              # listing page on top of the DataDome warm-up page — 1Gi OOMKills it.
+              memory: "2Gi"
+              cpu: "500m"
+          # Backstop for a fully-wedged event loop that the in-process watchdog
+          # cannot catch. Long period because the exec spawns a Python interpreter;
+          # the watchdog crash should normally restart the pod first.
+          livenessProbe:
+            exec:
+              command: ["/app/.venv/bin/python", "-m", "src.scraper.healthcheck"]
+            initialDelaySeconds: 120
+            periodSeconds: 60
+            timeoutSeconds: 10
+            failureThreshold: 3

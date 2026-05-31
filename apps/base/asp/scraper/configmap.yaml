@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: url-crawler-config
+  namespace: asp
+data:
+  # Search params now come from the search_requests table (orchestrator POST /search),
+  # not env. Crawler polls this table on the interval below.
+  CRAWLER_POLL_INTERVAL_S: "30"
+  # Python logging level for stdout (DEBUG/INFO/WARNING/ERROR).
+  LOG_LEVEL: "INFO"
+  PROXY_HOST: ""
+  PROXY_PORT: ""
+  # Stealth launch options (humanize/os/locale/cache) apply to the crawler too
+  # via BrowserSession defaults; the crawler stays on the fr-FR/LeBonCoin profile.
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: content-scraper-config
+  namespace: asp
+data:
+  PROXY_HOST: ""
+  PROXY_PORT: ""
+  # Comma-separated proxy server URLs; one picked per session (rotates on restart).
+  # Takes precedence over PROXY_HOST/PORT. Empty = direct IP.
+  PROXY_POOL: ""
+  # Per-session site profile (defaults target LeBonCoin / fr-FR). A future site sets these
+  # per deployment, e.g. SCRAPER_LOCALE: "en-CA" for a Canadian marketplace.
+  SCRAPER_SITE: "leboncoin"
+  SCRAPER_LOCALE: "fr-FR"
+  SCRAPER_WARMUP_URL: "https://www.leboncoin.fr/recherche?category=2"
+  # After a DataDome block: re-fingerprint then back off this long before the next claim.
+  BLOCK_COOLDOWN_S: "120"
+  # Python logging level for stdout (DEBUG/INFO/WARNING/ERROR).
+  LOG_LEVEL: "INFO"
