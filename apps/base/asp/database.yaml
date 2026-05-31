@@ -1,0 +1,14 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: asp-db
+spec:
+  instances: 3
+  bootstrap:
+    initdb:
+      database: asp
+      owner: asp
+      secret:
+        name: asp-db-credentials
+  storage:
+    size: 1Gi

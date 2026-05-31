@@ -5,4 +5,4 @@ resources:
   - namespace.yaml
   - orchestrator
   - scraper
-  - postgres
+  - database.yaml
