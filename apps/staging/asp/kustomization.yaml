@@ -5,10 +5,10 @@ namespace: asp
 
 resources:
   - ../../base/asp
-  - postgres-secrets.enc.yaml
+  - db-secrets.enc.yaml
   - orchestrator-secrets.enc.yaml
   - content-scraper-secrets.enc.yaml
-  - db-secrets.enc.yaml
+  - url-crawler-secrets.enc.yaml
   - ghcr-pull-secret.enc.yaml
 
 images:
