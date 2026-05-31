@@ -1,0 +1,210 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: asp-db-init
+  namespace: asp
+data:
+  init.sql: |
+    -- =============================================================================
+    -- init.sql — Automarket full schema (single source of truth)
+    -- Idempotent: safe to run on a clean database or re-run on an existing one.
+    -- =============================================================================
+
+    -- ---------------------------------------------------------------------------
+    -- listings
+    -- Source of truth: data/data/models.py (Listing model, BigPK mixin)
+    -- Cross-checked: scraping/scraping/pipelines.py (_ensure_schema / upsert)
+    -- ---------------------------------------------------------------------------
+    CREATE TABLE IF NOT EXISTS listings (
+        -- PK (BigPK mixin → BIGSERIAL on PostgreSQL)
+        id                    BIGSERIAL PRIMARY KEY,
+
+        -- Identity
+        source                VARCHAR(50)  NOT NULL,
+        listing_id            VARCHAR(100) NOT NULL,
+        url                   TEXT,
+
+        -- Core listing fields
+        title                 TEXT,
+        description           TEXT,
+        price                 INTEGER,
+        price_positioning     VARCHAR(50),          -- LBC own value rating
+
+        -- Vehicle identification
+        brand                 VARCHAR(100),
+        model                 VARCHAR(100),
+        version               VARCHAR(200),         -- trim level, e.g. "1.6 HDi 115ch Active"
+        year                  INTEGER,              -- year of first registration
+        condition             VARCHAR(50),          -- "used" | "new"
+        mileage               INTEGER,
+        fuel_type             VARCHAR(50),          -- "diesel" | "essence" | "electrique" | ...
+        transmission          VARCHAR(50),          -- "manuelle" | "automatique"
+        power_ch              INTEGER,              -- DIN horsepower (Ch)
+        engine_displacement   INTEGER,              -- cm³
+        vehicle_type          VARCHAR(100),         -- "Break" | "SUV" | "Berline" | ...
+        doors                 INTEGER,
+        seats                 INTEGER,
+        color                 VARCHAR(100),
+
+        -- Condition / admin
+        is_import             BOOLEAN,
+        tech_inspection_year  INTEGER,              -- CT valid until (year)
+
+        -- Seller
+        seller_type           VARCHAR(20),          -- "private" | "pro"
+        seller_name           VARCHAR(200),
+
+        -- Location
+        location_city         VARCHAR(200),
+        location_zip          VARCHAR(20),
+        location_lat          DOUBLE PRECISION,
+        location_lon          DOUBLE PRECISION,
+
+        -- Media & raw payload
+        images                JSONB,
+        raw                   JSONB,
+
+        -- Timestamps
+        scraped_at            TIMESTAMPTZ,
+        created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+        -- Constraints
+        UNIQUE (source, listing_id)
+    );
+
+    CREATE INDEX IF NOT EXISTS listings_source_idx
+        ON listings (source);
+
+    CREATE INDEX IF NOT EXISTS listings_brand_model_idx
+        ON listings (brand, model);
+
+    CREATE INDEX IF NOT EXISTS listings_price_idx
+        ON listings (price);
+
+    CREATE INDEX IF NOT EXISTS listings_scraped_at_idx
+        ON listings (scraped_at);
+
+    -- ---------------------------------------------------------------------------
+    -- price_history
+    -- Source of truth: data/data/models.py (PriceHistory model)
+    -- One row per price change per listing.
+    -- ---------------------------------------------------------------------------
+    CREATE TABLE IF NOT EXISTS price_history (
+        id          BIGSERIAL PRIMARY KEY,
+        listing_id  BIGINT      NOT NULL REFERENCES listings (id) ON DELETE CASCADE,
+        price       INTEGER     NOT NULL,
+        recorded_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    CREATE INDEX IF NOT EXISTS price_history_listing_idx
+        ON price_history (listing_id);
+
+    CREATE INDEX IF NOT EXISTS price_history_recorded_at_idx
+        ON price_history (recorded_at);
+
+    -- ---------------------------------------------------------------------------
+    -- scrape_queue
+    -- Work queue for the scraping workers.
+    -- ---------------------------------------------------------------------------
+    CREATE TABLE IF NOT EXISTS scrape_queue (
+        id            BIGSERIAL    PRIMARY KEY,
+        url           TEXT         NOT NULL,
+        source        VARCHAR(50)  NOT NULL DEFAULT 'leboncoin',
+        external_id   VARCHAR(100),
+        status        VARCHAR(20)  NOT NULL DEFAULT 'pending',
+        priority      SMALLINT     NOT NULL DEFAULT 0,
+        discovered_at TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+        locked_at     TIMESTAMPTZ,
+        completed_at  TIMESTAMPTZ,
+        attempts      SMALLINT     NOT NULL DEFAULT 0,
+        last_error    TEXT,
+        worker_id     VARCHAR(100),
+        listing_fk    BIGINT REFERENCES listings (id) ON DELETE SET NULL,
+        UNIQUE (url)
+    );
+
+    -- Partial index covering only pending rows — used by workers claiming jobs.
+    CREATE INDEX IF NOT EXISTS scrape_queue_claim_idx
+        ON scrape_queue (status, priority DESC, discovered_at)
+        WHERE status = 'pending';
+
+    -- ---------------------------------------------------------------------------
+    -- worker_control
+    -- Single-row control table read by all workers before each request.
+    -- ---------------------------------------------------------------------------
+    CREATE TABLE IF NOT EXISTS worker_control (
+        id           SERIAL      PRIMARY KEY,
+        paused       BOOLEAN     NOT NULL DEFAULT FALSE,
+        pause_reason TEXT,
+        min_delay_s  FLOAT       NOT NULL DEFAULT 3.0,
+        jitter_s     FLOAT       NOT NULL DEFAULT 2.0,
+        max_attempts SMALLINT    NOT NULL DEFAULT 3,
+        updated_at   TIMESTAMPTZ          DEFAULT NOW()
+    );
+
+    -- Independent crawler pause (separate from the scraper `paused` flag above).
+    ALTER TABLE worker_control ADD COLUMN IF NOT EXISTS crawler_paused       BOOLEAN NOT NULL DEFAULT FALSE;
+    ALTER TABLE worker_control ADD COLUMN IF NOT EXISTS crawler_pause_reason TEXT;
+
+    -- Seed exactly one row (idempotent — ON CONFLICT DO NOTHING).
+    INSERT INTO worker_control DEFAULT VALUES
+    ON CONFLICT DO NOTHING;
+
+    -- ---------------------------------------------------------------------------
+    -- search_requests
+    -- Orchestrator-issued search jobs. The crawler polls + claims pending rows,
+    -- paginates the LBC search API for each, and writes URLs into scrape_queue.
+    -- ---------------------------------------------------------------------------
+    CREATE TABLE IF NOT EXISTS search_requests (
+        id            BIGSERIAL    PRIMARY KEY,
+        brand         VARCHAR(100),
+        model         VARCHAR(100),
+        category      VARCHAR(20)  NOT NULL DEFAULT '2',
+        price_min     INTEGER,
+        price_max     INTEGER,
+        year_min      INTEGER,
+        mileage_max   INTEGER,
+        max_pages     SMALLINT     NOT NULL DEFAULT 10,
+        status        VARCHAR(20)  NOT NULL DEFAULT 'pending', -- pending/in_progress/done/failed/cancelled/scheduled/paused
+        urls_found    INTEGER,
+        last_error    TEXT,
+        worker_id     VARCHAR(100),
+        created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+        locked_at     TIMESTAMPTZ,
+        completed_at  TIMESTAMPTZ,
+        interval_s    INTEGER,                    -- NULL/0 = one-shot; else recurring period in seconds
+        next_run_at   TIMESTAMPTZ,                -- when a scheduled search becomes claimable again
+        last_run_at   TIMESTAMPTZ,                -- last completed run
+        run_count     INTEGER      NOT NULL DEFAULT 0,
+        consecutive_failures INTEGER NOT NULL DEFAULT 0  -- resets on success; drives backoff + give-up
+    );
+
+    -- Recurring-search columns (idempotent — for volumes provisioned before this feature).
+    ALTER TABLE search_requests ADD COLUMN IF NOT EXISTS interval_s  INTEGER;
+    ALTER TABLE search_requests ADD COLUMN IF NOT EXISTS next_run_at TIMESTAMPTZ;
+    ALTER TABLE search_requests ADD COLUMN IF NOT EXISTS last_run_at TIMESTAMPTZ;
+    ALTER TABLE search_requests ADD COLUMN IF NOT EXISTS run_count   INTEGER NOT NULL DEFAULT 0;
+    ALTER TABLE search_requests ADD COLUMN IF NOT EXISTS consecutive_failures INTEGER NOT NULL DEFAULT 0;
+
+    -- Partial index covering only pending rows — used by the crawler claiming jobs.
+    CREATE INDEX IF NOT EXISTS search_requests_claim_idx
+        ON search_requests (status, created_at)
+        WHERE status = 'pending';
+
+    -- Partial index for the orchestrator re-arm scan over scheduled (recurring) searches.
+    CREATE INDEX IF NOT EXISTS search_requests_rearm_idx
+        ON search_requests (next_run_at)
+        WHERE status = 'scheduled';
+
+    -- ---------------------------------------------------------------------------
+    -- Grants
+    -- postInitApplicationSQLRefs runs as the postgres superuser, so every object
+    -- above is owned by postgres — the `app` user has no privileges by default.
+    -- Grant app full DML on existing tables/sequences, and make it the default for
+    -- anything created later in this schema.
+    -- ---------------------------------------------------------------------------
+    GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO app;
+    GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO app;
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO app;
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO app;

@@ -5,7 +5,6 @@ namespace: asp
 
 resources:
   - ../../base/asp
-  - db-secrets.enc.yaml
   - orchestrator-secrets.enc.yaml
   - ghcr-pull-secret.enc.yaml
 
@@ -18,22 +17,7 @@ images:
     newTag: "orchestrator-v0.2.0"
 
 patches:
-  # Staging DB user is asp_ads (base default is automarket; base is shared with dev).
-  - target:
-      kind: ConfigMap
-      name: postgres-config
-    patch: |-
-      - op: replace
-        path: /data/POSTGRES_USER
-        value: asp_ads
-  - target:
-      kind: StatefulSet
-      name: postgres
-    patch: |-
-      - op: replace
-        path: /spec/template/spec/containers/0/readinessProbe/exec/command
-        value: ["pg_isready", "-U", "asp_ads", "-d", "automarket"]
-  # Pull the private GHCR images (ghcr.io/eliorion/asp-*). postgres uses a public image.
+  # Pull the private GHCR images (ghcr.io/eliorion/asp-*).
   - target:
       kind: Deployment
       name: orchestrator

@@ -8,5 +8,9 @@ spec:
     initdb:
       database: automarket
       owner: app
+      postInitApplicationSQLRefs:
+        configMapRefs:
+          - name: asp-db-init
+            key: init.sql
   storage:
-    size: 10Gi
+    size: 5Gi
