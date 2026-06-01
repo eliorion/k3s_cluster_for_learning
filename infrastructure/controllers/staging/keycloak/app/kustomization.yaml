@@ -3,4 +3,3 @@ kind: Kustomization
 namespace: identity
 resources:
   - secret.yaml
-  - configmap.yaml

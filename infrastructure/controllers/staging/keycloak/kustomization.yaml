@@ -3,5 +3,4 @@ kind: Kustomization
 namespace: identity
 resources:
   - ../../base/keycloak/
-#  - app/
-#  - database/
+  - app/

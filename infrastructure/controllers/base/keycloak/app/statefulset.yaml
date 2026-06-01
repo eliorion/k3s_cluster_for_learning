@@ -1,6 +1,4 @@
 apiVersion: apps/v1
-# Use a stateful setup to ensure that for a rolling update Pods are restarted with a rolling strategy one-by-one.
-# This prevents losing in-memory information stored redundantly in two Pods.
 kind: StatefulSet
 metadata:
   name: keycloak
@@ -8,8 +6,7 @@ metadata:
     app: keycloak
 spec:
   serviceName: keycloak-discovery
-  # Run with one replica to save resources, or with two replicas to allow for rolling updates for configuration changes
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: keycloak
@@ -21,28 +18,37 @@ spec:
       containers:
         - name: keycloak
           image: quay.io/keycloak/keycloak:26.5.4
-          args: ["start-dev"]
+          # Production mode (not start-dev). Builds an optimized server on first boot.
+          args: ["start"]
           envFrom:
-          - configMapRef:
-              name: postgres-configmap
-          - secretRef:
-              name: postgres-secret
+            - configMapRef:
+                name: keycloak-config
           env:
-            - name: POD_IP
+            # DB credentials from the CNPG-generated secret (auto-generated password).
+            - name: KC_DB_USERNAME
               valueFrom:
-                fieldRef:
-                  fieldPath: status.podIP
-            # Instruct JGroups which DNS hostname to use to discover other Keycloak nodes
-            # Needs to be unique for each Keycloak cluster
-            - name: KC_CACHE_EMBEDDED_NETWORK_BIND_ADDRESS
-              value: '$(POD_IP)'
+                secretKeyRef:
+                  name: keycloak-db-app
+                  key: username
+            - name: KC_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-db-app
+                  key: password
+            # Initial admin user, sourced from the SOPS-encrypted keycloak-secret.
+            - name: KC_BOOTSTRAP_ADMIN_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-secret
+                  key: KC_BOOTSTRAP_ADMIN_USERNAME
+            - name: KC_BOOTSTRAP_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-secret
+                  key: KC_BOOTSTRAP_ADMIN_PASSWORD
           ports:
             - name: http
               containerPort: 8080
-            - name: jgroups
-              containerPort: 7800
-            - name: jgroups-fd
-              containerPort: 57800
           startupProbe:
             httpGet:
               path: /health/started
@@ -67,4 +73,4 @@ spec:
               memory: 2000Mi
             requests:
               cpu: 500m
-              memory: 1700Mi
+              memory: 1024Mi
