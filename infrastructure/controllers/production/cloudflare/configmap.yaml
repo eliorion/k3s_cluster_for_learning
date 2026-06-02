@@ -8,8 +8,9 @@ metadata:
   name: cloudflared
 data:
   config.yaml: |
-    # Name of the tunnel you want to run
-    tunnel: tunnel-credentials
+    # Name of the tunnel you want to run.
+    # REPLACE with the prod tunnel UUID from `cloudflared tunnel create k3s-prod`.
+    tunnel: REPLACE_WITH_PROD_TUNNEL_UUID
 
     credentials-file: /etc/cloudflared/creds/credentials.json
 
@@ -18,11 +19,11 @@ data:
     no-autoupdate: true
 
     ingress:
-    - hostname: k3s-linkding.eliorion.fr
+    - hostname: linkding.eliorion.fr
       service: http://linkding.linkding.svc.cluster.local:9090
-    - hostname: k3s-audiobookshelf.eliorion.fr
+    - hostname: audiobookshelf.eliorion.fr
       service: http://audiobookshelf.audiobookshelf.svc.cluster.local:3005
-    - hostname: k3s-glpi.eliorion.fr
+    - hostname: glpi.eliorion.fr
       service: http://glpi.glpi.svc.cluster.local:8080
     - hostname: asp-admin.eliorion.fr
       service: http://orchestrator.asp.svc.cluster.local:8501
