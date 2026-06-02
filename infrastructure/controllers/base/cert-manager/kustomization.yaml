@@ -4,5 +4,3 @@ resources:
   - namespace.yaml
   - repository.yaml
   - release.yaml
-  # Barman Cloud Plugin (CNPG-I) — installs the ObjectStore CRD + sidecar injector.
-  - plugin/release.yaml

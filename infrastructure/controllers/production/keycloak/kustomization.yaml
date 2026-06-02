@@ -4,3 +4,11 @@ namespace: identity
 resources:
   - ../../base/keycloak/
   - app/
+  - database/r2-backup-credentials.enc.yaml
+  - database/objectstore.yaml
+  - database/scheduledbackup.yaml
+patches:
+  - path: database/cluster-backup-patch.yaml
+    target:
+      kind: Cluster
+      name: keycloak-db
