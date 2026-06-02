@@ -5,4 +5,5 @@ kubeconfig
 *.agekey
 tls.*
 *.DS_Store
-graphify-out/
+graphify-out/.graphify_*
+graphify-out/cache/
