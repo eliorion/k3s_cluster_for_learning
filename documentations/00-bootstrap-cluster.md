@@ -40,10 +40,11 @@ Next, you need to copy the kubeconfig file on your devcontainer to be able to co
 On your server, copy the file on your home directory:
 
 ```bash
-sudo cp /etc/rancher/k3s/k3s.yamll $HOME
+sudo cp /etc/rancher/k3s/k3s.yaml $HOME
 ```
 
 Back on your devcontainer, you can copy the kubeconfig file using `scp`:
+
 ```bash
 scp {NAME_OF_THE_SERVER}@{IP_OF_THE_SEVER}:/home/{NAME_OF_THE_SERVER}/k3s.yaml ./kubeconfig
 ```
@@ -71,7 +72,7 @@ If you have trouble using this file with `kubectl` you can copy the file on your
 
 ## **03-set repository**
 
-I assume at this point you have already created your own repository of this project with full access. You need to push code on this repository. 
+I assume at this point you have already created your own repository of this project with full access. You need to push code on this repository.
 
 ### **03.01-create token for flux**
 
@@ -87,7 +88,7 @@ You can add this Token on your `.envrc` variable but it not very secure, so you 
 
 ```bash
 export GITHUB_TOKEN=<your-token>
-export export GITHUB_USER=<your-username>
+export GITHUB_USER=<your-username>
 ```
 
 ## **04-
