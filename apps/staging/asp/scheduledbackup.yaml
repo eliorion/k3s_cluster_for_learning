@@ -4,6 +4,7 @@ metadata:
   name: asp-db-daily
 spec:
   schedule: "0 0 3 * * *"
+  immediate: true
   backupOwnerReference: self
   method: plugin
   pluginConfiguration:
