@@ -1,7 +1,8 @@
 *.envrc
 *.json
+key.txt
 *.pem
-kubeconfig
+kubeconfig*
 *.agekey
 tls.*
 *.DS_Store
