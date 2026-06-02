@@ -91,9 +91,45 @@ export GITHUB_TOKEN=<your-token>
 export GITHUB_USER=<your-username>
 ```
 
-## **04-
+## **04-Provide the SOPS age key**
 
-## **05-Bootstrap flux**
+Secrets in this repo are encrypted with [SOPS](https://github.com/getsops/sops) and an
+[age](https://github.com/FiloSottile/age) key. The `.sops.yaml` files hold only the
+**public** recipient (`age137z0k38fp0keu5ns4005e7cv4qlwt320wyf96y48a57sv42k6v9szh5ng3`), so
+encrypting and committing secrets is safe.
+
+At reconcile time Flux needs the matching **private** key to decrypt them. Several
+Kustomizations declare it:
+
+```yaml
+decryption:
+  provider: sops
+  secretRef:
+    name: sops-age
+```
+
+Flux reads that key from a Kubernetes secret named `sops-age` in the `flux-system`
+namespace. That secret holds the private key and is therefore **never committed to git** —
+you create it by hand on each cluster, before (or right after) bootstrap. If it is missing,
+every Kustomization with `decryption.sops` stays not-ready with a decryption error.
+
+> **Keep the private key safe.** It is the only thing that can decrypt your secrets
+> (Keycloak app secret, R2 backup credentials, the Cloudflare tunnel credentials, db
+> secrets). If you lose it, none of those can be recovered from git. The public line in the
+> key file must match the recipient in `.sops.yaml` before you trust it.
+
+```bash
+# flux-system namespace + the age private key as the sops-age secret
+# (the key filename inside the secret must end in .agekey)
+kubectl create namespace flux-system
+kubectl create secret generic sops-age -n flux-system \
+  --from-file=age.agekey=/path/to/age-private-key.txt
+```
+
+The same key is used for every environment, since all `.sops.yaml` files share one
+recipient — so staging and production both get the identical `sops-age` secret.
+
+## **05-Bootstrap flux (staging)**
 
 You just need to bootstrap flux on your cluster with the next command
 
@@ -107,3 +143,59 @@ flux bootstrap github \
 ```
 
 It will took some time to reconciliate, pull the images, start the pods, enable services.
+
+`flux bootstrap github` is idempotent: it installs/upgrades the Flux controllers, commits
+`gotk-components.yaml`, registers a deploy key on the repository, and creates the
+`flux-system` GitRepository + Kustomization pointing at the path you gave. It does **not**
+create the `sops-age` secret — that is the manual step 04 above, done once per cluster.
+
+## **06-Bootstrap a second cluster (production)**
+
+Production lives in the same repository on the same `main` branch — it just watches a
+different path (`./clusters/production`). One repo can drive many clusters: staging
+reconciles `./clusters/staging`, production reconciles `./clusters/production`, and they
+never conflict because each only applies its own path.
+
+To bring up the production cluster, repeat the previous steps against the **production**
+node:
+
+1. Install K3S on the production hardware (step 02) and copy its kubeconfig to your
+   devcontainer.
+2. Point `KUBECONFIG` at the production node and **verify** you are on the right cluster
+   before doing anything else:
+
+   ```bash
+   kubectl get nodes        # must show the production node, not staging
+   ```
+
+3. Create the `sops-age` secret on this cluster too (step 04) — same private key.
+4. Bootstrap Flux against the production path:
+
+   ```bash
+   flux bootstrap github \
+     --owner=$GITHUB_USER \
+     --repository=k3s_cluster_for_learning \
+     --branch=main \
+     --path=./clusters/production \
+     --personal
+   ```
+
+5. Watch it converge:
+
+   ```bash
+   flux get kustomizations -A        # all Ready=True
+   ```
+
+The production overlays are already in the repo
+(`clusters/production/`, `infrastructure/controllers/production/`, `apps/production/`,
+`monitoring/*/production/`), so nothing else needs to be written — Flux applies them on the
+first reconcile. The Flux dependency order (`infra-certmanager` → `infra-cnpg-plugin` →
+`infrastructure-controllers` + `apps`) means the CNPG ObjectStore CRD is always installed
+before any backup `ObjectStore` is applied.
+
+Production also runs its **own** Cloudflare tunnel (separate credentials and `*.eliorion.fr`
+hostnames without the `k3s-` prefix) so it does not collide with staging — see
+`infrastructure/controllers/production/cloudflare/`. Seeding the production databases from
+the staging backups is a one-time CNPG **recovery bootstrap** (replace the cluster's
+`initdb` with `bootstrap.recovery` from the staging `ObjectStore`); the recovery mechanics
+are shown in the restore/PITR section of [03-backups.md](03-backups.md).
