@@ -59,3 +59,5 @@ clustering hook — keep it.
   (e.g. `https://keycloak.eliorion.fr`), then drop `KC_HOSTNAME_STRICT: "false"`.
 - **Flux ordering:** the CNPG `Cluster` depends on the CNPG operator being
   healthy. First reconcile may error, then self-heal on retry.
+- **Backups:** `keycloak-db` is backed up to Cloudflare R2 (PITR, daily base +
+  continuous WAL, 7d retention). See `03-backups.md`.
