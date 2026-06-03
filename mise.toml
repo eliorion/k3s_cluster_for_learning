@@ -7,3 +7,12 @@ flux2  = "latest"
 sops = "latest"
 age = "latest"
 helm = "latest"
+shellcheck = "latest"
+
+[tasks.sops-updatekeys]
+description = "Rewrap *.enc.yaml secrets to recipients in .sops.yaml (pass -- -k FILE [--check])"
+run = "scripts/sops-updatekeys"
+
+[tasks.lint]
+description = "shellcheck all scripts"
+run = "shellcheck scripts/sops-updatekeys"

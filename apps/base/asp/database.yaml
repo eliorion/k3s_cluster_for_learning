@@ -3,7 +3,7 @@ kind: Cluster
 metadata:
   name: asp-db
 spec:
-  instances: 3
+  instances: 1
   bootstrap:
     initdb:
       database: automarket

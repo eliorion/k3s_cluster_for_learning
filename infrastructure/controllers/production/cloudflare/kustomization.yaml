@@ -4,4 +4,4 @@ namespace: cloudflare
 resources:
   - ../../base/cloudflare/
   - configmap.yaml
-  - tunnel-secret.yaml
+  - tunnel-secret.enc.yaml
