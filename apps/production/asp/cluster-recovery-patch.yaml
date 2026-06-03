@@ -8,6 +8,8 @@
   value:
     recovery:
       source: asp-db-staging
+      database: automarket
+      owner: app
 - op: add
   path: /spec/externalClusters
   value:
