@@ -11,7 +11,7 @@ resources:
   - objectstore.yaml
   - scheduledbackup.yaml
   # TEMPORARY seed-from-staging — remove after seeding (plan Step 6)
-  - r2-staging-credentials.enc.yaml
+  - r2-staging-backup-credentials.enc.yaml
   - objectstore-staging.yaml
 
 images:
