@@ -3,11 +3,84 @@
 Staging-only. Two components:
 
 - **ARC** (actions-runner-controller, `gha-runner-scale-set` mode) — ephemeral
-  GitHub Actions runners for `Eliorion/asp`, scaling 0→2 pods on demand.
-- **Nexus Repository OSS 3** — in-cluster PyPI proxy so pip downloads are
-  cached locally between CI runs. Deployed with the `stevehipwell/nexus3`
-  Helm chart (StatefulSet), which also provisions the `pypi-proxy` repo
-  declaratively via its config Job — no manual Nexus setup.
+  GitHub Actions runners for `Eliorion/asp`, scaling 0→5 pods on demand.
+- **Nexus Repository OSS 3** — in-cluster PyPI proxy + Docker registries so
+  dependencies and images are cached locally between CI runs. Deployed with
+  the `stevehipwell/nexus3` Helm chart (StatefulSet), which provisions all
+  repos declaratively via its config Job — no manual Nexus setup.
+
+## Nexus repositories
+
+| Repo | Type | Port | Use |
+|---|---|---|---|
+| `pypi-proxy` | pypi proxy | 8081 (path) | pip cache |
+| `docker-hub` | docker proxy → registry-1.docker.io | 5000 | Docker Hub pull-through |
+| `ghcr` | docker proxy → ghcr.io | 5001 | GHCR pull-through |
+| `docker-cache` | docker hosted | 5002 | buildx `:buildcache` push/pull |
+
+Docker connector ports are plain **HTTP** (no TLS yet) — see the dind
+section below for the `--insecure-registry` consequence. Each `httpPort`
+must be unique across repos; a port collision makes the config Job fail
+with `status code 400` and the connector never opens (`connection refused`
+on pulls).
+
+In-cluster pulls use cluster DNS, e.g.:
+
+```
+nexus.nexus.svc.cluster.local:5001/gitleaks/gitleaks:v8.30.1
+```
+
+A separate `nexus-lb` LoadBalancer Service
+(`infrastructure/services/base/nexus/services.yaml`) exposes 8081 +
+5000-5002 on the node IP for workstation debugging.
+
+## How it works, end to end
+
+```
+GitHub (Eliorion/asp)                      k3s cluster
+─────────────────────                      ───────────────────────────────────
+workflow queued                            arc-systems namespace
+  runs-on: self-hosted-arc  ◄── long poll ── listener pod (one per scale set)
+        │                                       │ "1 job queued"
+        │                                       ▼
+        │                                  gha-runner-scale-set-controller
+        │                                       │ creates EphemeralRunner
+        │                                       ▼
+        │                                  arc-runners namespace
+        └── job runs on ──────────────►    runner pod (ephemeral, 1 job max)
+                                            ├─ runner container (run.sh)
+                                            └─ dind sidecar (dockerd)
+                                                 │ docker pull/push
+                                                 ▼
+                                           nexus namespace
+                                           nexus-0 (StatefulSet)
+                                            ├─ :8081 UI + pypi-proxy
+                                            ├─ :5000 docker-hub proxy
+                                            ├─ :5001 ghcr proxy
+                                            └─ :5002 docker-cache (hosted)
+                                                 │ cache miss
+                                                 ▼
+                                           registry-1.docker.io / ghcr.io / pypi.org
+```
+
+1. **Registration** — the `gha-runner-scale-set` Helm release registers a
+   scale set named `self-hosted-arc` with GitHub, authenticating with the
+   `arc-github-pat` Secret. GitHub shows it under the repo's
+   Settings > Actions > Runners.
+2. **Scaling** — the listener pod long-polls GitHub. When a workflow with
+   `runs-on: self-hosted-arc` queues a job, the controller creates an
+   ephemeral runner pod (`minRunners: 0`, `maxRunners: 5`). One pod = one
+   job; the pod is deleted after the job ends, so every job starts clean.
+3. **Docker** — each runner pod carries its own dockerd as a native sidecar
+   (manual dind template). Workflow `docker` commands hit that daemon via
+   the shared unix socket (`DOCKER_HOST=unix:///var/run/docker.sock`).
+4. **Caching** — image pulls go through the Nexus proxies instead of
+   upstream: first pull fills the cache, repeat pulls are LAN-fast and
+   don't burn Docker Hub rate limits. Buildx pushes layer cache to the
+   hosted `docker-cache` repo (`:buildcache` tag, overwritten each build).
+   pip resolves via `pypi-proxy` the same way.
+5. **Cleanup** — the `purge-stale` policy deletes anything not downloaded
+   in 14 days, across all repos.
 
 ## Layout
 
@@ -82,8 +155,20 @@ it works on self-hosted runners:
 
 ### Container builds
 
-The scale set runs in `dind` mode, so `docker build`/`docker push` work
-inside jobs.
+Runner pods run docker-in-docker, so `docker build`/`docker push` work
+inside jobs. The chart's `containerMode: dind` is **not** used: it injects a
+fixed dind sidecar that accepts no extra dockerd flags. Instead
+`arc-runner-set/release.yaml` defines the pod template manually (ARC docs
+pattern) so the dind container can pass
+`--insecure-registry=nexus.nexus.svc[.cluster.local]:5000|5001|5002` —
+required because the Nexus docker connectors are HTTP-only.
+
+Consequences:
+
+- Workflows must reference the registry with one of the whitelisted
+  host:port forms (short `nexus.nexus.svc` or FQDN).
+- Chart upgrades past `0.14.x` will not auto-update the dind wiring —
+  re-check the template against upstream when bumping.
 
 ## Verification
 
@@ -106,7 +191,48 @@ kubectl run pip-test --rm -it --image=python:3.12 -- \
 
 ## Sizing notes (single-node)
 
-- Nexus: 1–2g JVM heap, 2.5Gi memory limit, 10Gi PVC. Raise
+- Nexus: 1–2g JVM heap, 2.5Gi memory limit, 80Gi PVC. Raise
   `install4jAddVmParams` and the limit together if it OOMs.
-- Runners: max 2 concurrent pods, 1Gi limit each. Bump `maxRunners` in
-  `arc-runner-set/release.yaml` when the node has headroom.
+- Runners: max 5 concurrent pods, 2Gi request / 4Gi limit each. Bump
+  `maxRunners` in `arc-runner-set/release.yaml` when the node has headroom.
+
+## Troubleshooting
+
+### Nexus HelmRelease: `cannot patch "nexus" with kind StatefulSet ... Forbidden`
+
+`volumeClaimTemplates` (PVC size) is immutable on StatefulSets, and the
+`local-path` storage class does not support volume expansion. Changing
+`persistence.size` therefore blocks every subsequent Helm upgrade. Fix
+(wipes Nexus data — proxy caches and buildcache are rebuildable, repos and
+root password are re-applied by the config Job):
+
+```bash
+kubectl -n nexus delete sts nexus
+kubectl -n nexus delete pvc data-nexus-0
+flux suspend helmrelease nexus -n flux-system   # reset exhausted retries
+flux resume helmrelease nexus -n flux-system
+```
+
+### Runner logs: `to create fsnotify watcher: too many open files`
+
+Node inotify limits exhausted (kernel default `max_user_instances=128` is
+too low for k3s + ARC + dind). On the node:
+
+```bash
+echo 'fs.inotify.max_user_instances=8192
+fs.inotify.max_user_watches=1048576' | sudo tee /etc/sysctl.d/99-inotify.conf
+sudo sysctl --system
+```
+
+Persists across reboots via `systemd-sysctl`; running pods pick it up
+immediately.
+
+### CI pull fails: `dial tcp ...:500x: connect: connection refused`
+
+Nexus only opens a docker connector port once the repo's config applied
+successfully. Check the config Job logs for a repo error (e.g. the port
+collision above):
+
+```bash
+kubectl -n nexus logs job/nexus-config-<n>
+```

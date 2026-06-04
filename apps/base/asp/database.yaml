@@ -4,6 +4,22 @@ metadata:
   name: asp-db
 spec:
   instances: 1
+  image: ghcr.io/cloudnative-pg/cloudnative-pg:1.29.1
+
+  postgresql:
+    synchronous:
+      method: any
+      number: 1
+      dataDurability: required
+    parameters:
+      max_connections: "200"
+      shared_buffers: "256MB"
+      effective_cache_size: "768MB"
+      work_mem: "4MB"
+      maintenance_work_mem: "64MB"
+      # Enable logical replication for CDC
+      wal_level: logical
+
   bootstrap:
     initdb:
       database: automarket
@@ -12,5 +28,17 @@ spec:
         configMapRefs:
           - name: asp-db-init
             key: init.sql
+  # Superuser secret
+  #  superuserSecret:
+  #    name: postgres-superuser-secret
+
+  # Enable monitoring
+  #  monitoring:
+  #    enablePodMonitor: true
+  # WAL storage (separate PVC for better I/O isolation)
+  #  walStorage:
+  #    size: 5Gi
+  #    storageClass: fast-ssd
+
   storage:
     size: 5Gi
