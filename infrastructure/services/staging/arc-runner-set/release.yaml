@@ -26,18 +26,79 @@ spec:
     runnerScaleSetName: self-hosted-arc
     minRunners: 0
     maxRunners: 5
-    # dind so workflows can build container images.
-    containerMode:
-      type: "dind"
+    # containerMode: dind removed — the auto-injected dind sidecar accepts no
+    # extra dockerd flags, so the template below reproduces it manually and
+    # adds --insecure-registry for the HTTP-only Nexus docker connectors.
     template:
       spec:
+        initContainers:
+          # Copies runner externals where the dind container expects them
+          # (the chart's containerMode:dind injected this automatically).
+          - name: init-dind-externals
+            image: ghcr.io/actions/actions-runner:latest
+            command:
+              ["cp", "-r", "/home/runner/externals/.", "/home/runner/tmpDir/"]
+            volumeMounts:
+              - name: dind-externals
+                mountPath: /home/runner/tmpDir
+          # Native sidecar (restartPolicy: Always on an initContainer).
+          - name: dind
+            image: docker:dind
+            args:
+              - dockerd
+              - --host=unix:///var/run/docker.sock
+              - --group=$(DOCKER_GROUP_GID)
+              # Nexus docker connectors are plain HTTP (no TLS yet).
+              - --insecure-registry=nexus.nexus.svc:5000
+              - --insecure-registry=nexus.nexus.svc:5001
+              - --insecure-registry=nexus.nexus.svc:5002
+              - --insecure-registry=nexus.nexus.svc.cluster.local:5000
+              - --insecure-registry=nexus.nexus.svc.cluster.local:5001
+              - --insecure-registry=nexus.nexus.svc.cluster.local:5002
+            env:
+              - name: DOCKER_GROUP_GID
+                value: "123"
+            securityContext:
+              privileged: true
+            restartPolicy: Always
+            startupProbe:
+              exec:
+                command: ["docker", "info"]
+              initialDelaySeconds: 0
+              failureThreshold: 24
+              periodSeconds: 2
+            volumeMounts:
+              - name: work
+                mountPath: /home/runner/_work
+              - name: dind-sock
+                mountPath: /var/run
+              - name: dind-externals
+                mountPath: /home/runner/externals
         containers:
           - name: runner
             image: ghcr.io/actions/actions-runner:latest
             command: ["/home/runner/run.sh"]
+            env:
+              - name: DOCKER_HOST
+                value: unix:///var/run/docker.sock
+              - name: RUNNER_WAIT_FOR_DOCKER_IN_SECONDS
+                value: "120"
             resources:
               requests:
                 cpu: 1
                 memory: 2Gi
               limits:
                 memory: 4Gi
+                cpu: 4
+            volumeMounts:
+              - name: work
+                mountPath: /home/runner/_work
+              - name: dind-sock
+                mountPath: /var/run
+        volumes:
+          - name: work
+            emptyDir: {}
+          - name: dind-sock
+            emptyDir: {}
+          - name: dind-externals
+            emptyDir: {}
