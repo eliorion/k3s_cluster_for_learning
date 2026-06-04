@@ -13,10 +13,10 @@ CNPG Cluster keycloak-db ──auto──▶ Secret keycloak-db-app (random pass
                                    Keycloak StatefulSet (start, prod mode)
 ```
 
-- **DB:** `infrastructure/controllers/base/keycloak/database/cluster.yaml` — CNPG
+- **DB:** `infrastructure/services/base/keycloak/database/cluster.yaml` — CNPG
   `Cluster`. CNPG generates the `keycloak-db-app` secret (random password); no
   credential lives in git. Keycloak connects to the `keycloak-db-rw` service.
-- **App:** `infrastructure/controllers/base/keycloak/app/` — `start` (production)
+- **App:** `infrastructure/services/base/keycloak/app/` — `start` (production)
   mode. DB creds from the CNPG secret, initial admin from the SOPS-encrypted
   `keycloak-secret`. Namespace `identity`.
 - **Single replica** today. Keycloak itself is stateless (all durable state in

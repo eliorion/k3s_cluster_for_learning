@@ -49,6 +49,27 @@ spec:
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
+  name: infra-arc-controller
+  namespace: flux-system
+spec:
+  interval: 1h
+  retryInterval: 1m
+  timeout: 5m
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  path: ./infrastructure/controllers/base/arc
+  prune: true
+  wait: true
+  healthChecks:
+    - apiVersion: apps/v1
+      kind: Deployment
+      name: arc-controller-gha-rs-controller
+      namespace: arc-systems
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
   name: infrastructure-controllers
   namespace: flux-system
 spec:
@@ -61,6 +82,30 @@ spec:
     kind: GitRepository
     name: flux-system
   path: ./infrastructure/controllers/staging
+  prune: true
+  decryption:
+    provider: sops
+    secretRef:
+      name: sops-age
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: infrastructure-services
+  namespace: flux-system
+spec:
+  interval: 1m0s
+  dependsOn:
+    # CNPG operator (keycloak DB) comes from infrastructure-controllers;
+    # arc-runner-set needs the ARC CRDs.
+    - name: infrastructure-controllers
+    - name: infra-arc-controller
+  retryInterval: 1m
+  timeout: 5m
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  path: ./infrastructure/services/staging
   prune: true
   decryption:
     provider: sops

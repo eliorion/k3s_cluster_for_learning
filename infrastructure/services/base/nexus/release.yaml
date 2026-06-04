@@ -1,0 +1,66 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: nexus
+  namespace: flux-system
+spec:
+  targetNamespace: nexus
+  releaseName: nexus
+  interval: 30m
+  # Nexus boots slowly (2min+), give helm-controller room to wait.
+  timeout: 10m
+  chart:
+    spec:
+      # Renovate keeps this pinned version current.
+      chart: nexus3
+      version: "5.22.0"
+      sourceRef:
+        kind: HelmRepository
+        name: stevehipwell
+        namespace: flux-system
+      interval: 12h
+  install:
+    createNamespace: true
+  values:
+    # Keep the service named `nexus` so cluster DNS stays nexus.nexus.svc:8081.
+    fullnameOverride: nexus
+    persistence:
+      enabled: true
+      storageClass: local-path
+      size: 10Gi
+    # Keep heap modest: single-node homelab. Raise -Xmx and the memory limit
+    # together if Nexus OOMs under heavier use.
+    install4jAddVmParams: "-Xms1g -Xmx2g -XX:MaxDirectMemorySize=2048m"
+    resources:
+      requests:
+        cpu: 250m
+        memory: 1536Mi
+      limits:
+        memory: 2560Mi
+    rootPassword:
+      # SOPS-encrypted secret provided by the staging overlay.
+      secret: nexus-root-password
+      key: password
+    config:
+      enabled: true
+      # Anonymous read so in-cluster pip pulls need no credentials.
+      anonymous:
+        enabled: true
+      repos:
+        - name: pypi-proxy
+          format: pypi
+          type: proxy
+          online: true
+          storage:
+            blobStoreName: default
+            strictContentTypeValidation: true
+          proxy:
+            remoteUrl: https://pypi.org/
+            contentMaxAge: 1440
+            metadataMaxAge: 1440
+          negativeCache:
+            enabled: true
+            timeToLive: 1440
+          httpClient:
+            blocked: false
+            autoBlock: true

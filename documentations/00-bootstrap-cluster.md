@@ -195,7 +195,7 @@ before any backup `ObjectStore` is applied.
 
 Production also runs its **own** Cloudflare tunnel (separate credentials and `*.eliorion.fr`
 hostnames without the `k3s-` prefix) so it does not collide with staging — see
-`infrastructure/controllers/production/cloudflare/`. Seeding the production databases from
+`infrastructure/services/production/cloudflare/`. Seeding the production databases from
 the staging backups is a one-time CNPG **recovery bootstrap** (replace the cluster's
 `initdb` with `bootstrap.recovery` from the staging `ObjectStore`); the recovery mechanics
 are shown in the restore/PITR section of [03-backups.md](03-backups.md).
