@@ -52,14 +52,14 @@ No manual UI/REST setup — repositories live in
 
 ## Using the runners from `Eliorion/asp` workflows
 
-Target the scale set with `runs-on: asp-runners`.
+Target the scale set with `runs-on: self-hosted-arc`.
 
 ### Python (pip via Nexus proxy)
 
 ```yaml
 jobs:
   build:
-    runs-on: asp-runners
+    runs-on: self-hosted-arc
     env:
       PIP_INDEX_URL: http://nexus.nexus.svc:8081/repository/pypi-proxy/simple
       PIP_TRUSTED_HOST: nexus.nexus.svc
@@ -94,8 +94,8 @@ kubectl -n arc-systems get pods    # controller Running
 kubectl -n arc-runners get pods,autoscalingrunnerset
 kubectl -n nexus get pods,pvc      # nexus-0 Running / Bound, config job Completed
 
-# GitHub: asp repo > Settings > Actions > Runners > "asp-runners" online
-# Push a workflow with runs-on: asp-runners and watch a runner pod spawn:
+# GitHub: asp repo > Settings > Actions > Runners > "self-hosted-arc" online
+# Push a workflow with runs-on: self-hosted-arc and watch a runner pod spawn:
 kubectl -n arc-runners get pods -w
 
 # Test the pip proxy from inside the cluster:

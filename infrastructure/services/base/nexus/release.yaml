@@ -27,13 +27,13 @@ spec:
     persistence:
       enabled: true
       storageClass: local-path
-      size: 10Gi
+      size: 50Gi
     # Keep heap modest: single-node homelab. Raise -Xmx and the memory limit
     # together if Nexus OOMs under heavier use.
     install4jAddVmParams: "-Xms1g -Xmx2g -XX:MaxDirectMemorySize=2048m"
     resources:
       requests:
-        cpu: 250m
+        cpu: 500m
         memory: 1536Mi
       limits:
         memory: 2560Mi
@@ -41,11 +41,35 @@ spec:
       # SOPS-encrypted secret provided by the staging overlay.
       secret: nexus-root-password
       key: password
+    service:
+      additionalPorts:
+        - port: 5000
+          name: docker-hub
+          containerPort: 5000
+        - port: 5001
+          name: docker-ghcr
+          containerPort: 5001
+        - port: 5002
+          name: docker-cache
+          containerPort: 5002
     config:
       enabled: true
-      # Anonymous read so in-cluster pip pulls need no credentials.
       anonymous:
         enabled: true
+      # Docker clients authenticate via token — required even for anonymous pull.
+      realms:
+        enabled: true
+        values:
+          - NexusAuthenticatingRealm
+          - DockerToken
+      cleanup:
+        # Proxies + the overwritten buildcache tag grow fast on a 10Gi volume.
+        - name: purge-stale
+          notes: "Drop anything not downloaded in 14 days."
+          format: ALL_FORMATS
+          mode: delete
+          criteria:
+            lastDownloaded: "1209600"
       repos:
         - name: pypi-proxy
           format: pypi
@@ -55,7 +79,7 @@ spec:
             blobStoreName: default
             strictContentTypeValidation: true
           proxy:
-            remoteUrl: https://pypi.org/
+            remoteUrl: https://pypi.org
             contentMaxAge: 1440
             metadataMaxAge: 1440
           negativeCache:
@@ -64,3 +88,94 @@ spec:
           httpClient:
             blocked: false
             autoBlock: true
+          cleanup:
+            policyNames: [purge-stale]
+        - name: docker-hub
+          format: docker
+          type: proxy
+          online: true
+          storage:
+            blobStoreName: default
+            strictContentTypeValidation: true
+          proxy:
+            remoteUrl: https://registry-1.docker.io
+            contentMaxAge: 1440
+            metadataMaxAge: 1440
+          negativeCache:
+            enabled: true
+            timeToLive: 1440
+          httpClient:
+            blocked: false
+            autoBlock: true
+          docker:
+            v1Enabled: false
+            forceBasicAuth: false # anonymous pull
+            httpPort: 5000
+          dockerProxy:
+            indexType: HUB
+          cleanup:
+            policyNames: [purge-stale]
+        - name: ghcr
+          format: docker
+          type: proxy
+          online: true
+          storage:
+            blobStoreName: default
+            strictContentTypeValidation: true
+          proxy:
+            remoteUrl: https://ghcr.io
+            contentMaxAge: 1440
+            metadataMaxAge: 1440
+          negativeCache:
+            enabled: true
+            timeToLive: 1440
+          httpClient:
+            blocked: false
+            autoBlock: true
+          docker:
+            v1Enabled: false
+            forceBasicAuth: false # anonymous pull
+            httpPort: 5000
+          dockerProxy:
+            indexType: HUB
+          cleanup:
+            policyNames: [purge-stale]
+        - name: ghcr
+          format: docker
+          type: proxy
+          online: true
+          storage:
+            blobStoreName: default
+            strictContentTypeValidation: true
+          proxy:
+            remoteUrl: https://ghcr.io
+            contentMaxAge: 1440
+            metadataMaxAge: 1440
+          negativeCache:
+            enabled: true
+            timeToLive: 1440
+          httpClient:
+            blocked: false
+            autoBlock: true
+          docker:
+            v1Enabled: false
+            forceBasicAuth: false
+            httpPort: 5001
+          dockerProxy:
+            indexType: REGISTRY
+          cleanup:
+            policyNames: [purge-stale]
+        - name: docker-cache
+          format: docker
+          type: hosted
+          online: true
+          storage:
+            blobStoreName: default
+            strictContentTypeValidation: true
+            writePolicy: allow # :buildcache tag overwritten every build
+          docker:
+            v1Enabled: false
+            forceBasicAuth: false # anonymous pull (e2e cache-from has no login); push still needs auth
+            httpPort: 5002
+          cleanup:
+            policyNames: [purge-stale]

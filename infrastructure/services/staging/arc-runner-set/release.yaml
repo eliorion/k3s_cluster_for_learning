@@ -22,10 +22,10 @@ spec:
   values:
     githubConfigUrl: https://github.com/Eliorion/asp
     githubConfigSecret: arc-github-pat
-    # `runs-on: asp-runners` in workflow files targets this scale set.
-    runnerScaleSetName: asp-runners
+    # `runs-on: self-hosted-arc` in workflow files targets this scale set.
+    runnerScaleSetName: self-hosted-arc
     minRunners: 0
-    maxRunners: 2
+    maxRunners: 5
     # dind so workflows can build container images.
     containerMode:
       type: "dind"
@@ -37,7 +37,7 @@ spec:
             command: ["/home/runner/run.sh"]
             resources:
               requests:
-                cpu: 250m
-                memory: 512Mi
+                cpu: 1
+                memory: 2Gi
               limits:
-                memory: 1Gi
+                memory: 4Gi

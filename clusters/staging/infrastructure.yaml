@@ -65,7 +65,7 @@ spec:
     - apiVersion: apps/v1
       kind: Deployment
       name: arc-controller-gha-rs-controller
-      namespace: arc-systems
+      namespace: arc-system
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
