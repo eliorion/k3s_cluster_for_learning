@@ -134,31 +134,6 @@ spec:
             autoBlock: true
           docker:
             v1Enabled: false
-            forceBasicAuth: false # anonymous pull
-            httpPort: 5000
-          dockerProxy:
-            indexType: HUB
-          cleanup:
-            policyNames: [purge-stale]
-        - name: ghcr
-          format: docker
-          type: proxy
-          online: true
-          storage:
-            blobStoreName: default
-            strictContentTypeValidation: true
-          proxy:
-            remoteUrl: https://ghcr.io
-            contentMaxAge: 1440
-            metadataMaxAge: 1440
-          negativeCache:
-            enabled: true
-            timeToLive: 1440
-          httpClient:
-            blocked: false
-            autoBlock: true
-          docker:
-            v1Enabled: false
             forceBasicAuth: false
             httpPort: 5001
           dockerProxy:
