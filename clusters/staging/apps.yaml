@@ -2,7 +2,7 @@
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
-  name: asp-db-migrations
+  name: db-migrations
   namespace: flux-system
 spec:
   interval: 1m0s
@@ -13,7 +13,7 @@ spec:
   sourceRef:
     kind: GitRepository
     name: flux-system
-  path: ./apps/base/asp/db-migrations-job.yaml
+  path: ./apps/staging/db-migrations
   prune: true
   force: true # Job is immutable — image-tag bump must delete+recreate
   wait: true # Ready only when the Job COMPLETES; failed Job = NotReady
@@ -27,7 +27,7 @@ spec:
   interval: 1m0s
   dependsOn:
     - name: infra-cnpg-plugin
-    - name: asp-db-migrations
+    - name: db-migrations
   retryInterval: 1m
   timeout: 5m
   sourceRef:
