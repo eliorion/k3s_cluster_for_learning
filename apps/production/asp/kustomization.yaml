@@ -7,12 +7,6 @@ resources:
   - ../../base/asp
   - orchestrator-secrets.enc.yaml
   - ghcr-pull-secret.enc.yaml
-  - r2-backup-credentials.enc.yaml
-  - objectstore.yaml
-  - scheduledbackup.yaml
-  # TEMPORARY seed-from-staging — remove after seeding (plan Step 6)
-  - r2-staging-backup-credentials.enc.yaml
-  - objectstore-staging.yaml
 
 images:
   - name: asp-scraper
@@ -23,16 +17,6 @@ images:
     newTag: "orchestrator-v0.2.0"
 
 patches:
-  # Attach the Barman Cloud Plugin to the CNPG cluster for R2 backups.
-  - path: cluster-backup-patch.yaml
-    target:
-      kind: Cluster
-      name: asp-db
-  # TEMPORARY seed-from-staging — remove after seeding (plan Step 6)
-  - path: cluster-recovery-patch.yaml
-    target:
-      kind: Cluster
-      name: asp-db
   # Pull the private GHCR images (ghcr.io/eliorion/asp-*).
   - target:
       kind: Deployment
