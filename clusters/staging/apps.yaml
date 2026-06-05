@@ -13,7 +13,7 @@ spec:
   sourceRef:
     kind: GitRepository
     name: flux-system
-  path: ./apps/db-migrations/staging
+  path: ./apps/base/asp/db-migrations-job.yaml
   prune: true
   force: true # Job is immutable — image-tag bump must delete+recreate
   wait: true # Ready only when the Job COMPLETES; failed Job = NotReady
