@@ -36,12 +36,12 @@ spec:
           resources:
             requests:
               memory: "512Mi"
-              cpu: "250m"
+              cpu: "100m"
             limits:
               # Camoufox headless Firefox peaks above 1Gi when rendering a
               # listing page on top of the DataDome warm-up page — 1Gi OOMKills it.
-              memory: "2Gi"
-              cpu: "500m"
+              memory: "1Gi"
+              cpu: "250m"
           # Backstop for a fully-wedged event loop that the in-process watchdog
           # cannot catch. Long period because the exec spawns a Python interpreter;
           # the watchdog crash should normally restart the pod first.

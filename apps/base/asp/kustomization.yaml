@@ -7,3 +7,4 @@ resources:
   - scraper
   - database.yaml
   - db-init-configmap.yaml
+  - db-migrations-job.yaml

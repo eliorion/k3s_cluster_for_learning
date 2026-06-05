@@ -1,3 +1,23 @@
+# Runs the Flyway Job and gates the `apps` Kustomization on its success.
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: asp-db-migrations
+  namespace: flux-system
+spec:
+  interval: 1m0s
+  dependsOn:
+    - name: infra-cnpg-plugin # CNPG cluster (and its staging-app secret) must exist first
+  retryInterval: 1m
+  timeout: 5m # > backoffLimit(3) x migration runtime
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  path: ./apps/db-migrations/staging
+  prune: true
+  force: true # Job is immutable — image-tag bump must delete+recreate
+  wait: true # Ready only when the Job COMPLETES; failed Job = NotReady
+---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
@@ -7,6 +27,7 @@ spec:
   interval: 1m0s
   dependsOn:
     - name: infra-cnpg-plugin
+    - name: asp-db-migrations
   retryInterval: 1m
   timeout: 5m
   sourceRef:
