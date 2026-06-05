@@ -3,17 +3,24 @@ kind: Cluster
 metadata:
   name: asp-db
 spec:
-  instances: 1
-  image: ghcr.io/cloudnative-pg/cloudnative-pg:1.29.1
+  instances: 2
+  # PostgreSQL image, pinned to what the operator deployed (Renovate bumps it).
+  # NOTE: field is imageName (not image); ghcr.io/cloudnative-pg/cloudnative-pg
+  # is the operator image and must never be used here.
+  imageName: ghcr.io/cloudnative-pg/postgresql:18.3-system-trixie
 
   postgresql:
+    # Synchronous replication: primary waits for 1 replica ack per commit.
+    # Requires number < instances — keep in sync if instances changes.
     synchronous:
       method: any
       number: 1
-      dataDurability: required
+      # preferred: fall back to async when the replica is unavailable so
+      # writes never block (single-node homelab — no real HA to protect).
+      dataDurability: preferred
     parameters:
       max_connections: "200"
-      shared_buffers: "256MB"
+      # shared_buffers: "256MB"
       effective_cache_size: "768MB"
       work_mem: "4MB"
       maintenance_work_mem: "64MB"
