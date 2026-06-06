@@ -59,7 +59,7 @@ spec:
       # deployment-side concern. Tailscale egress: leboncoin only (pre-refactor
       # topology). A creds-bearing proxy would use urlSecret: {name, key}
       # (secretKeyRef) instead of url.
-      proxies:
-        - name: tailscale
-          url: "http://100.100.98.5:8888"
-          sites: [leboncoin]
+      #proxies:
+      #  - name: tailscale
+      #    url: "http://100.100.98.5:8888"
+      #    sites: [leboncoin]
