@@ -24,7 +24,7 @@ spec:
     githubConfigSecret: arc-github-pat
     # `runs-on: self-hosted-arc` in workflow files targets this scale set.
     runnerScaleSetName: self-hosted-arc
-    minRunners: 0
+    minRunners: 1
     maxRunners: 5
     # containerMode: dind removed — the auto-injected dind sidecar accepts no
     # extra dockerd flags, so the template below reproduces it manually and
