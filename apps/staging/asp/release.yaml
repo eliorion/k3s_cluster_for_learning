@@ -1,0 +1,32 @@
+# The asp app (orchestrator, scraper/crawler lanes, analyzer, frontend).
+# Chart lives in the asp repo (k8s/charts/asp) — values.yaml there carries the
+# canonical image tags, bumped by the asp repo's CI on each release. Values
+# here are environment overrides ONLY, never image tags.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: asp
+spec:
+  interval: 30m
+  chart:
+    spec:
+      chart: k8s/charts/asp
+      # Chart.yaml version is static 0.1.0 — upgrade on every new git revision
+      # of the (chart-path-scoped) GitRepository instead.
+      reconcileStrategy: Revision
+      sourceRef:
+        kind: GitRepository
+        name: asp
+        namespace: flux-system
+      interval: 1m
+  upgrade:
+    remediation:
+      # A failed upgrade (e.g. a bad release tag) rolls back to the last good
+      # release instead of leaving the app wedged.
+      strategy: rollback
+  values:
+    global:
+      # Pull the private GHCR images (ghcr.io/eliorion/asp-*).
+      # The ghcr-pull-secret Secret itself is owned by the databases tier.
+      imagePullSecrets:
+        - name: ghcr-pull-secret

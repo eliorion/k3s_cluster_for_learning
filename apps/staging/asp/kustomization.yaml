@@ -4,31 +4,5 @@ kind: Kustomization
 namespace: asp
 
 resources:
-  - ../../base/asp
+  - release.yaml
   - orchestrator-secrets.enc.yaml
-
-images:
-  - name: asp-scraper
-    newName: ghcr.io/eliorion/asp-scraper
-    newTag: "scraper-v0.7.0"
-  - name: asp-orchestrator
-    newName: ghcr.io/eliorion/asp-orchestrator
-    newTag: "orchestrator-v0.4.1"
-  - name: asp-analyzer
-    newName: ghcr.io/eliorion/asp-analyzer
-    newTag: "analyzer-v0.3.0"
-  - name: asp-frontend
-    newName: ghcr.io/eliorion/asp-frontend
-    newTag: "frontend-v0.1.1"
-
-patches:
-  # Pull the private GHCR images (ghcr.io/eliorion/asp-*) on every Deployment
-  # (per-site scraper/crawler lanes + orchestrator + analyzer + frontend).
-  # The ghcr-pull-secret Secret itself is owned by the databases tier.
-  - target:
-      kind: Deployment
-      name: ".*"
-    patch: |-
-      - op: add
-        path: /spec/template/spec/imagePullSecrets
-        value: [{name: ghcr-pull-secret}]
