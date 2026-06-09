@@ -1,0 +1,41 @@
+# Identity the dedicated e2e runner pods assume (serviceAccountName in
+# release.yaml). Its projected token is how the CI e2e job authenticates to the
+# HOST staging cluster to run `vcluster create` / kubectl / helm — no stored
+# kubeconfig leaves the cluster.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: asp-e2e-runner
+  namespace: arc-runners
+---
+# PRIVILEGE NOTE — this binds cluster-admin, on purpose.
+#
+# `vcluster create` is a helm install that stands up the vcluster control plane
+# AND its own syncer RBAC (Roles/RoleBindings) in a per-PR namespace whose name
+# is dynamic, so it cannot be RBAC-scoped ahead of time. Kubernetes'
+# privilege-escalation prevention then forbids this SA from creating any RBAC it
+# does not itself already hold — so a hand-curated "minimal" role reliably fails
+# mid-install. The working grant is cluster-admin.
+#
+# The real controls that make this acceptable are NOT the RBAC scope, they are:
+#   * a DEDICATED scale set (self-hosted-arc-e2e) — only the asp e2e job runs
+#     here, so the token is never mounted into general CI jobs;
+#   * minRunners: 0 — no warm pod holding the token when idle;
+#   * the e2e job's fork-PR guard (same-repo PRs only) + ARC fork approval;
+#   * ephemeral per-PR vclusters reaped after the run.
+#
+# Tightening path: vCluster Platform (Loft) issues scoped, time-boxed CI tokens
+# that can only REQUEST a vcluster (the platform holds the real perms), which is
+# the production-grade replacement for this broad grant when self-service grows.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: asp-e2e-runner
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: asp-e2e-runner
+    namespace: arc-runners

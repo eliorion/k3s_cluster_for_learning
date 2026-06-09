@@ -1,0 +1,115 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: arc-runner-set-asp-e2e
+  namespace: flux-system
+spec:
+  targetNamespace: arc-runners
+  releaseName: arc-runner-set-asp-e2e
+  interval: 30m
+  chart:
+    spec:
+      # Must stay in lockstep with the gha-runner-scale-set-controller chart
+      # version in infrastructure/controllers/base/arc/release.yaml.
+      # Renovate keeps this pinned version current.
+      chart: gha-runner-scale-set
+      version: "0.14.2"
+      sourceRef:
+        kind: HelmRepository
+        name: arc
+        namespace: flux-system
+      interval: 12h
+  values:
+    githubConfigUrl: https://github.com/Eliorion/asp
+    # Reuses the same PAT secret as the general runner (same arc-runners ns).
+    githubConfigSecret: arc-github-pat
+    # DEDICATED e2e scale set: only the asp e2e job targets `runs-on:
+    # self-hosted-arc-e2e`. Kept separate from the general runner so the bound
+    # ServiceAccount token below (cluster access for `vcluster create`) is NOT
+    # mounted into every CI job — least blast radius.
+    runnerScaleSetName: self-hosted-arc-e2e
+    # Scale to zero when idle: e2e is bursty (per-PR) and each run spins a full
+    # asp stack in a vcluster on the single staging node — don't hold a warm pod.
+    minRunners: 0
+    maxRunners: 2
+    template:
+      spec:
+        # Bound projected SA token → kubectl/helm/vcluster authenticate to the
+        # HOST staging cluster in-cluster (no stored kubeconfig). RBAC in rbac.yaml.
+        serviceAccountName: asp-e2e-runner
+        initContainers:
+          # Copies runner externals where the dind container expects them
+          # (the chart's containerMode:dind injected this automatically).
+          - name: init-dind-externals
+            image: ghcr.io/actions/actions-runner:latest
+            command:
+              ["cp", "-r", "/home/runner/externals/.", "/home/runner/tmpDir/"]
+            volumeMounts:
+              - name: dind-externals
+                mountPath: /home/runner/tmpDir
+          # Native sidecar (restartPolicy: Always on an initContainer).
+          - name: dind
+            image: docker:dind
+            args:
+              - dockerd
+              - --host=unix:///var/run/docker.sock
+              - --group=$(DOCKER_GROUP_GID)
+              # Nexus docker connectors are plain HTTP (no TLS yet).
+              - --insecure-registry=nexus.nexus.svc:5000
+              - --insecure-registry=nexus.nexus.svc:5001
+              - --insecure-registry=nexus.nexus.svc:5002
+              - --insecure-registry=nexus.nexus.svc.cluster.local:5000
+              - --insecure-registry=nexus.nexus.svc.cluster.local:5001
+              - --insecure-registry=nexus.nexus.svc.cluster.local:5002
+              # e2e image push target: the node-reachable nexus-lb LoadBalancer.
+              # The image is tagged with this address so the vcluster pods (host
+              # containerd) can pull it back by the SAME ref (host registries.yaml
+              # mirrors it to http). See documentations/04-ci-runners-cache.md.
+              - --insecure-registry=192.168.1.50:5002
+            env:
+              - name: DOCKER_GROUP_GID
+                value: "123"
+            securityContext:
+              privileged: true
+            restartPolicy: Always
+            startupProbe:
+              exec:
+                command: ["docker", "info"]
+              initialDelaySeconds: 0
+              failureThreshold: 24
+              periodSeconds: 2
+            volumeMounts:
+              - name: work
+                mountPath: /home/runner/_work
+              - name: dind-sock
+                mountPath: /var/run
+              - name: dind-externals
+                mountPath: /home/runner/externals
+        containers:
+          - name: runner
+            image: ghcr.io/actions/actions-runner:latest
+            command: ["/home/runner/run.sh"]
+            env:
+              - name: DOCKER_HOST
+                value: unix:///var/run/docker.sock
+              - name: RUNNER_WAIT_FOR_DOCKER_IN_SECONDS
+                value: "120"
+            resources:
+              requests:
+                cpu: 1
+                memory: 2Gi
+              limits:
+                memory: 4Gi
+                cpu: 4
+            volumeMounts:
+              - name: work
+                mountPath: /home/runner/_work
+              - name: dind-sock
+                mountPath: /var/run
+        volumes:
+          - name: work
+            emptyDir: {}
+          - name: dind-sock
+            emptyDir: {}
+          - name: dind-externals
+            emptyDir: {}

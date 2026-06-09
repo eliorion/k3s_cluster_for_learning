@@ -88,6 +88,8 @@ workflow queued                            arc-systems namespace
 |---|---|---|
 | ARC controller | `infrastructure/controllers/base/arc/` | `infra-arc-controller` |
 | Runner scale set (asp) | `infrastructure/services/staging/arc-runner-set/` | `infrastructure-services` (SOPS) |
+| e2e vcluster runner (asp) | `infrastructure/services/staging/arc-runner-set-e2e/` | `infrastructure-services` (SOPS) |
+| e2e vcluster reaper | `infrastructure/services/staging/vcluster-e2e/` | `infrastructure-services` (SOPS) |
 | Nexus | `infrastructure/services/base/nexus/` + `staging/nexus/` | `infrastructure-services` (SOPS) |
 
 The two ARC Helm charts (`gha-runner-scale-set-controller` and
@@ -122,6 +124,40 @@ sops --encrypt --in-place infrastructure/services/staging/nexus/nexus-root-passw
 
 No manual UI/REST setup — repositories live in
 `infrastructure/services/base/nexus/release.yaml` under `values.config.repos`.
+
+### 3. e2e vcluster runner — host registry trust (node-level, NOT Flux)
+
+The asp CI e2e job can run on a **dedicated** runner scale set
+(`self-hosted-arc-e2e`, `infrastructure/services/staging/arc-runner-set-e2e/`)
+that creates an **ephemeral per-PR vcluster** in this cluster and deploys the asp
+stack into it (much faster than the nested dind→k3d path). Its pods carry the
+`asp-e2e-runner` ServiceAccount (`cluster-admin` — see the note in `rbac.yaml`).
+
+vcluster pods schedule on the **host node** and are pulled by **host containerd**,
+which does not trust the plain-HTTP Nexus. The e2e build tags images
+`192.168.1.50:5002/asp-*:dev` (the existing `nexus-lb` LoadBalancer docker-cache
+port), so the node must be told that registry is HTTP. This is a **node file**
+(not GitOps) — do it once on the k3s host:
+
+```bash
+sudo tee -a /etc/rancher/k3s/registries.yaml >/dev/null <<'EOF'
+mirrors:
+  "192.168.1.50:5002":
+    endpoint:
+      - "http://192.168.1.50:5002"
+configs:
+  "192.168.1.50:5002":
+    tls:
+      insecure_skip_verify: true
+EOF
+sudo systemctl restart k3s
+# verify the node can pull a pushed image:
+sudo k3s ctr images pull 192.168.1.50:5002/asp-scraper:dev
+```
+
+Then set the asp repo Variables: `CI_RUNNER_E2E=self-hosted-arc-e2e`,
+`E2E_BACKEND=vcluster`, `E2E_REGISTRY=192.168.1.50:5002`. Leaving them unset
+keeps CI on the portable k3d-in-dind path.
 
 ## Using the runners from `Eliorion/asp` workflows
 

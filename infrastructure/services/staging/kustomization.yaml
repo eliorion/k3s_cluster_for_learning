@@ -5,4 +5,6 @@ resources:
   - keycloak/
   - cloudflare/
   - arc-runner-set/
+  - arc-runner-set-e2e/
+  - vcluster-e2e/
   - nexus/
