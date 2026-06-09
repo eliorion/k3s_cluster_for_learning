@@ -7,7 +7,7 @@ resources:
   - ../../../base/databases/fbref
   # grafana_ro role password (basic-auth) — consumed by the CNPG managed role.
   - fbref-grafana-ro.enc.yaml
-  # TODO: UNCOMMENT once ghcr-pull-secret.enc.yaml is added (create the PAT,
-  # sops-encrypt it; same name `ghcr-pull-secret`, fbref namespace). Until then
-  # fbref pods ImagePullBackOff (also pending the renamed image release).
-  # - ghcr-pull-secret.enc.yaml
+  # GHCR pull secret for the private fbref image (own ns → own pull secret).
+  # Added out of band: create a read:packages PAT, sops-encrypt it as this file
+  # (same name `ghcr-pull-secret`, fbref namespace).
+  - ghcr-pull-secret.enc.yaml
