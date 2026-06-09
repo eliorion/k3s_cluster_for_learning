@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: Secret
+metadata:
+    name: telegram-bot-token
+    namespace: flux-system
+type: Opaque
+stringData:
+    #ENC[AES256_GCM,data:gOE9bfwkAMpC/oFSSf/qfCwhnXnxSAk9SYGNlKtPYGCrLTUW/ygHs6LQ6mFZhcOD4JeadPmJj0TfZumfNzFuDwU=,iv:DpyzvWD1JHNlokv/xv20MJ6PJQD6JESI+jFSXtUmTGM=,tag:re9r1hSBsKMxPKZKFqnbTw==,type:comment]
+    token: ENC[AES256_GCM,data:bnSIAqCJP/UbqvONTs0AsknRikavDwyMlGWxSM1YSgwYw2soFeYmvFFVhoCa3g==,iv:IVAboSpyeXK+wAziOuci4dJXO0pyyeAydhhgs9VezNY=,tag:dl6QUJhpIUfhZqqTslKj8Q==,type:str]
+sops:
+    age:
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBSZmVHWkgrYXpIZ0Y4QndH
+            Mzc1RG4vQ1l5ZTh3NHZBS3N5T3BhSVQxNkJFCmJFQ2d4MnBHUDRzTzFsQlVaUDlk
+            eDVHMmFFcVFaNEhEUDNLQU5LZlJyRm8KLS0tIHNYemtIU0twSERMLytWK2FJUkwz
+            aDNqb1Z6Z2t2OXZnUXd1NWRQRTRzVTgKHoyLpUGRBdHQ+WfofALRWLnm++RBzIvw
+            xJ51716x3Lb3y7sUhRmHUhChW9evQ5g977jZNRVx3VMJ3q9Ap63xeA==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age137z0k38fp0keu5ns4005e7cv4qlwt320wyf96y48a57sv42k6v9szh5ng3
+    encrypted_regex: ^(data|stringData)$
+    lastmodified: "2026-06-09T09:09:24Z"
+    mac: ENC[AES256_GCM,data:JI45cpZe9LmqQ27iKUh6h+BPEW6WdA3ZeG0RjVAaWy+cLvSN+3fxWev1GGYBmWeGQQTflM1YNVIKLXqtBSMwiugSvsvrvPYGz5fV7Iw9OB0qVZuBvTfxtXDpCygVxep/KUg9pFHGFhrgep5ifJDTs2yZ7FzRcRMFwlmGisxkD9A=,iv:MVHjTprpoZg0panle4p1vkTHW3WExZU9GiJHXUHdoNM=,tag:g/20KK/Bbe/IP02h79rc8Q==,type:str]
+    version: 3.13.1
