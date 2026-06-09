@@ -10,7 +10,8 @@ change the YAML, commit, push, let Flux reconcile.
 - `infrastructure/controllers/` — operators: cert-manager, cnpg, ARC controller
 - `infrastructure/services/` — workloads: nexus, arc-runner-set, cloudflare, renovate
 - `apps/`, `monitoring/` — application and monitoring tiers
-- `documentations/` — numbered guides; `04-ci-runners-cache.md` covers the CI stack
+- `documentations/` — numbered guides; `04-ci-runners-cache.md` covers the CI
+  stack, `05-alerting.md` covers Telegram deploy-failure notifications
 - Each tier uses `base/` + `staging/` (+ `production/`) kustomize overlays
 
 ## Conventions
