@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: fbref-db-init
-  namespace: asp
+  namespace: fbref
 data:
   init.sql: |
     -- =========================================================================

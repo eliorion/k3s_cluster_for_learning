@@ -1,15 +1,15 @@
 # The fbref app — Helm chart owned by the asp repo (k8s/charts/fbref), synced via
 # the `fbref` GitRepository (clusters/staging/fbref-source.yaml). Image tag lives
 # in the chart's values.yaml (bumped by CI on release); this file carries only
-# environment overrides. Deploys into the `asp` namespace (shared with asp) but
-# against its own CNPG cluster fbref-db.
+# environment overrides. Deploys into its OWN `fbref` namespace (separate from
+# asp) against its own CNPG cluster fbref-db.
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
   name: fbref
   namespace: flux-system
 spec:
-  targetNamespace: asp
+  targetNamespace: fbref
   interval: 30m
   chart:
     spec:
@@ -22,6 +22,9 @@ spec:
       # tag-bump commit rolls out without touching this repo).
       reconcileStrategy: Revision
   install:
+    # The fbref ns is created by the databases tier (runs first); createNamespace
+    # is harmless belt-and-suspenders if the app tier ever races ahead.
+    createNamespace: true
     remediation:
       retries: 3
   upgrade:
@@ -36,8 +39,8 @@ spec:
     enable: true
   values:
     global:
-      # Pull the private GHCR images. The ghcr-pull-secret Secret is owned by the
-      # databases tier (asp namespace) and already present.
+      # Pull the private GHCR image. The ghcr-pull-secret Secret is owned by the
+      # fbref databases overlay (fbref namespace).
       imagePullSecrets:
         - name: ghcr-pull-secret
     # No scraper.proxies here → Cloudflare will block the staging IP. Add a

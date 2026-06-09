@@ -3,6 +3,7 @@ kind: Kustomization
 
 # CNPG clusters and their secrets/backups. db-migrations/ is intentionally
 # NOT listed — it is applied by its own Flux Kustomization (db-migrations).
+# fbref/ is intentionally NOT listed either — it has its own Flux Kustomization
+# (fbref-databases, clusters/staging/fbref.yaml) so it reconciles independently.
 resources:
   - asp/
-  - fbref/

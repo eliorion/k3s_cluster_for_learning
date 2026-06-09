@@ -2,7 +2,7 @@ apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
   name: fbref-db
-  namespace: asp
+  namespace: fbref
 spec:
   instances: 2
   # PostgreSQL image, pinned to what the operator deployed (Renovate bumps it).
