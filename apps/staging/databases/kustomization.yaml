@@ -5,3 +5,4 @@ kind: Kustomization
 # NOT listed — it is applied by its own Flux Kustomization (db-migrations).
 resources:
   - asp/
+  - fbref/

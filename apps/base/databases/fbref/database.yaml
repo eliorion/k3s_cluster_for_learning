@@ -1,0 +1,50 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: fbref-db
+  namespace: asp
+spec:
+  instances: 2
+  # PostgreSQL image, pinned to what the operator deployed (Renovate bumps it).
+  # NOTE: field is imageName (not image); ghcr.io/cloudnative-pg/cloudnative-pg
+  # is the operator image and must never be used here.
+  imageName: ghcr.io/cloudnative-pg/postgresql:18.3-system-trixie
+
+  postgresql:
+    synchronous:
+      method: any
+      number: 1
+      # preferred: fall back to async when the replica is unavailable so writes
+      # never block (single-node homelab — no real HA to protect).
+      dataDurability: preferred
+    parameters:
+      max_connections: "100"
+      effective_cache_size: "512MB"
+      work_mem: "4MB"
+      maintenance_work_mem: "64MB"
+
+  bootstrap:
+    initdb:
+      database: fbref
+      owner: app
+      # Full schema + grants. Runs as superuser on a fresh cluster (idempotent
+      # IF NOT EXISTS — safe to re-run). Source of truth stays
+      # services/fbref/postgres/init.sql; this ConfigMap is a hand-synced copy.
+      postInitApplicationSQLRefs:
+        configMapRefs:
+          - name: fbref-db-init
+            key: init.sql
+
+  # Operator-managed read-only role for Grafana. The role itself is created
+  # (NOLOGIN) by init.sql; here it is flipped to LOGIN and its password is set
+  # from the basic-auth Secret (staging overlay, sops-encrypted).
+  managed:
+    roles:
+      - name: grafana_ro
+        ensure: present
+        login: true
+        passwordSecret:
+          name: fbref-grafana-ro
+
+  storage:
+    size: 5Gi

@@ -1,0 +1,8 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# fbref shares the `asp` namespace (owned by the asp databases base) but has its
+# own CNPG cluster (fbref-db) — "its own data". No namespace.yaml here.
+resources:
+  - database.yaml
+  - db-init-configmap.yaml

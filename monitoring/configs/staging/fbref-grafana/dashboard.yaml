@@ -1,0 +1,106 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fbref-grafana-dashboard
+  namespace: monitoring
+  labels:
+    # Picked up by the kube-prometheus-stack grafana dashboards sidecar.
+    grafana_dashboard: "1"
+data:
+  fbref-overview.json: |
+    {
+      "uid": "fbref-overview",
+      "title": "fbref overview",
+      "tags": ["fbref"],
+      "schemaVersion": 39,
+      "version": 1,
+      "time": { "from": "now-6h", "to": "now" },
+      "refresh": "5m",
+      "templating": {
+        "list": [
+          {
+            "name": "stat",
+            "label": "Stat",
+            "type": "query",
+            "datasource": { "type": "postgres", "uid": "fbref" },
+            "query": "SELECT DISTINCT stat_name FROM player_stats ORDER BY 1",
+            "refresh": 2,
+            "includeAll": false,
+            "current": {}
+          }
+        ]
+      },
+      "panels": [
+        {
+          "id": 1,
+          "title": "Clubs",
+          "type": "stat",
+          "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 },
+          "datasource": { "type": "postgres", "uid": "fbref" },
+          "targets": [
+            { "refId": "A", "format": "table", "rawSql": "SELECT count(*) AS value FROM clubs;" }
+          ]
+        },
+        {
+          "id": 2,
+          "title": "Players",
+          "type": "stat",
+          "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 },
+          "datasource": { "type": "postgres", "uid": "fbref" },
+          "targets": [
+            { "refId": "A", "format": "table", "rawSql": "SELECT count(*) AS value FROM players;" }
+          ]
+        },
+        {
+          "id": 3,
+          "title": "Last scrape",
+          "type": "stat",
+          "gridPos": { "h": 4, "w": 6, "x": 8, "y": 0 },
+          "fieldConfig": { "defaults": { "unit": "dateTimeFromNow" } },
+          "datasource": { "type": "postgres", "uid": "fbref" },
+          "targets": [
+            { "refId": "A", "format": "table", "rawSql": "SELECT max(scraped_at) AS value FROM players;" }
+          ]
+        },
+        {
+          "id": 4,
+          "title": "Queue by status",
+          "type": "piechart",
+          "gridPos": { "h": 8, "w": 10, "x": 0, "y": 4 },
+          "datasource": { "type": "postgres", "uid": "fbref" },
+          "targets": [
+            { "refId": "A", "format": "table", "rawSql": "SELECT status, count(*) AS count FROM url_queue GROUP BY status ORDER BY count DESC;" }
+          ]
+        },
+        {
+          "id": 5,
+          "title": "Failed queue items",
+          "type": "table",
+          "gridPos": { "h": 8, "w": 14, "x": 10, "y": 4 },
+          "datasource": { "type": "postgres", "uid": "fbref" },
+          "targets": [
+            { "refId": "A", "format": "table", "rawSql": "SELECT url, kind, attempts, last_error, completed_at FROM url_queue WHERE status = 'failed' ORDER BY completed_at DESC NULLS LAST LIMIT 50;" }
+          ]
+        },
+        {
+          "id": 6,
+          "title": "Squad sizes (players per club)",
+          "type": "barchart",
+          "gridPos": { "h": 9, "w": 12, "x": 0, "y": 12 },
+          "datasource": { "type": "postgres", "uid": "fbref" },
+          "targets": [
+            { "refId": "A", "format": "table", "rawSql": "SELECT c.name AS club, count(p.id) AS players FROM clubs c LEFT JOIN players p ON p.current_club_fbref_id = c.fbref_id GROUP BY c.name ORDER BY players DESC LIMIT 25;" }
+          ]
+        },
+        {
+          "id": 7,
+          "title": "Leaders — $stat",
+          "type": "table",
+          "gridPos": { "h": 9, "w": 12, "x": 12, "y": 12 },
+          "datasource": { "type": "postgres", "uid": "fbref" },
+          "targets": [
+            { "refId": "A", "format": "table", "rawSql": "SELECT p.name AS player, ps.team, ps.season, ps.stat_value::numeric AS value FROM player_stats ps JOIN players p ON p.fbref_id = ps.player_fbref_id WHERE ps.stat_name = '$stat' AND ps.stat_value ~ '^[0-9.]+$' ORDER BY value DESC LIMIT 20;" }
+          ]
+        }
+      ]
+    }
