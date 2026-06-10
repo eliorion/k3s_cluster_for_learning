@@ -6,9 +6,16 @@ Debian, Flux path `clusters/staging`) to the Talos node
 Longhorn replaces `local-path` as the storage class on Talos (single replica,
 no volume-expansion limitation, snapshots/backups built in).
 
-Work top to bottom; each step is "move the Flux entrypoint Kustomization from
-`clusters/staging/` to `clusters/talos-staging/`, commit, push, watch it go
-Ready on Talos". Keep both clusters running until the final cutover.
+Work top to bottom. Stateless controllers (steps 1–2) are **copied** to
+`clusters/talos-staging/` and stay on k3s until decommission — the live k3s
+databases still need cert-manager and the CNPG operator for backups. Stateful
+or singleton workloads (steps 3+) are genuine moves.
+
+⚠️ **Operational constraint (discovered 2026-06-10): only ONE cluster can run
+at a time** — k3s and Talos never coexist. R2 (and local dump files) are the
+only data channels between them. Singleton concerns (duplicate ARC scale
+sets, duplicate tunnel) are moot; cutover = "boot the other node". Each k3s
+boot is purely a data-extraction window.
 
 ## Prerequisites (before moving anything)
 
@@ -34,11 +41,26 @@ Ready on Talos". Keep both clusters running until the final cutover.
 
 Dependency-ordered; each block is one commit/PR.
 
-1. **cert-manager** (`infra-certmanager`) — no state, plain move.
-2. **CNPG plugin + operator** (`infra-cnpg-plugin`, `infrastructure-controllers`)
-   — operator is stateless; needs `sops-age` (decryption) on Talos first.
-3. **Databases (the only real data migration)** — for each CNPG cluster
-   (asp + fbref, both under `databases`):
+1. **cert-manager** (`infra-certmanager`) — no state, copy to talos-staging
+   (do NOT remove from k3s: pruning deletes its CRDs and breaks the barman
+   plugin certificates there). ✅ done 2026-06-10
+2. **CNPG plugin + operator + ARC controller** (`infra-cnpg-plugin`,
+   `infrastructure-controllers`, `infra-arc-controller`) — stateless, copy;
+   needs `sops-age` (decryption) on Talos first. ✅ done 2026-06-10
+   **Monitoring moved here too** (originally step 8): cnpg's chart needs the
+   PodMonitor CRD + monitoring namespace from kube-prometheus-stack. The
+   monitoring namespace needs privileged PSA labels on Talos (node-exporter).
+   ✅ done 2026-06-10
+3. **Databases (the only real data migration)** ✅ done 2026-06-10 —
+   asp-db seeded on Talos via barman recovery from the k3s archive
+   (`serverName: asp-db`), now archiving to its own path
+   (`serverName: asp-db-talos`), first backup completed; row counts verified
+   (listings=22800). fbref-db had zero rows on k3s → fresh initdb on Talos,
+   nothing migrated. Gotcha hit: after freezing writers, the end-of-backup
+   checkpoint WAL segment was never archived (no traffic → no segment
+   switch) — recovery fails with "could not locate required checkpoint
+   record" until you run `CHECKPOINT; SELECT pg_switch_wal();` on the source.
+   Original per-cluster steps, kept for production reference:
    - [ ] Trigger + verify a fresh barman-cloud backup to R2 on k3s
          (`kubectl get backups.postgresql.cnpg.io`, check R2 object timestamps).
    - [ ] Scale app writers down on k3s (avoid writes after the backup).
@@ -64,14 +86,15 @@ Dependency-ordered; each block is one commit/PR.
    - [ ] Deploy cloudflared on Talos (same SOPS credentials), verify it
          connects, then remove the k3s deployment. Tunnel tolerates two
          replicas briefly; keep the overlap window short.
-8. **Monitoring** (`monitoring-controllers`, `monitoring-configs`) — Grafana/
-   Prometheus history is disposable; deploy fresh. Telegram alerting secrets
-   move with the YAML (doc 05).
+8. **Monitoring** — already copied at step 2 (CRD dependency). Both clusters
+   alert to the same Telegram group until k3s is decommissioned.
 9. **Renovate** — stateless, plain move.
 
 ## Decommission k3s
 
-- [ ] `clusters/staging/` only contains `flux-system/` → all entrypoints moved.
+- [ ] All stateful/singleton entrypoints moved; only `flux-system/` and the
+      copied controller entrypoints remain in `clusters/staging/` — safe to
+      delete with the cluster.
 - [ ] Final fresh R2 backups exist for both CNPG clusters (belt & braces).
 - [ ] Power off the k3s node.
 - [ ] GitHub repo → Settings → Deploy keys: delete the staging key
