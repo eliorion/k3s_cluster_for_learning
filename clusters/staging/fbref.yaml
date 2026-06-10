@@ -1,7 +1,9 @@
-# fbref deploys independently of asp — its own Flux Kustomizations (own ns,
-# own CNPG cluster, own reconcile/health). Mirrors the asp databases→apps shape
-# (clusters/staging/apps.yaml) but scoped to the fbref paths. No db-migrations
-# tier: fbref has no Flyway (schema bootstraps via the CNPG init ConfigMap).
+# MIGRATION STEP 1 of 2 — fbref is being folded into the asp pipeline
+# (databases/apps Kustomizations, clusters/staging/apps.yaml).
+# prune is disabled here so that deleting these Kustomizations in step 2 does
+# NOT garbage-collect the fbref namespace / fbref-db CNPG cluster / HelmRelease.
+# Push this first, wait for flux-system to reconcile, then delete this file and
+# add fbref/ to the apps/staging and apps/staging/databases kustomizations.
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
@@ -17,7 +19,7 @@ spec:
     kind: GitRepository
     name: flux-system
   path: ./apps/staging/databases/fbref
-  prune: true
+  prune: false
   wait: true # Ready when the CNPG fbref-db Cluster reports Ready
   decryption:
     provider: sops
@@ -39,7 +41,7 @@ spec:
     kind: GitRepository
     name: flux-system
   path: ./apps/staging/fbref
-  prune: true
+  prune: false
   wait: true
   # Surface the fbref app health here: NotReady when the fbref HelmRelease fails
   # (e.g. an upgrade auto-rolled-back), independent of asp.
