@@ -8,6 +8,7 @@ sops = "latest"
 age = "latest"
 helm = "latest"
 shellcheck = "latest"
+talosctl = "latest"
 
 [tasks.sops-updatekeys]
 description = "Rewrap *.enc.yaml secrets to recipients in .sops.yaml (pass -- -k FILE [--check])"

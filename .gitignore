@@ -8,3 +8,7 @@ tls.*
 *.DS_Store
 graphify-out/.graphify_*
 graphify-out/cache/
+# Talos machine configs + talosconfig embed cluster CA keys/secrets
+bootstraping/controlplane.yaml
+bootstraping/worker.yaml
+bootstraping/talosconfig
