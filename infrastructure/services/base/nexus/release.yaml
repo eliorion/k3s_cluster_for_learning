@@ -26,7 +26,8 @@ spec:
     fullnameOverride: nexus
     persistence:
       enabled: true
-      storageClass: local-path
+      # Talos cluster: Longhorn CSI (local-path was the k3s provisioner).
+      storageClass: longhorn
       size: 80Gi
     # Keep heap modest: single-node homelab. Raise -Xmx and the memory limit
     # together if Nexus OOMs under heavier use.
