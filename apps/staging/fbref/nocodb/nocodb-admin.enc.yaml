@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: Secret
+metadata:
+    name: nocodb-admin
+    namespace: fbref
+type: Opaque
+stringData:
+    email: ENC[AES256_GCM,data:8IEIRHGDlqKeyxHvqgNO,iv:LSufuiagPiblYALDJDalAPybEIdwc9z12NxNPHnjWJU=,tag:B/6wDsAOD3U2C0Gefa/C8g==,type:str]
+    password: ENC[AES256_GCM,data:bqBO9Hvc6TK4AyCczL6bfmYV/qfixbsz2FgJ/y4rQw==,iv:MlRDKTQVOs8Spcsvvb3Cp1z5zzXccXmUUYueM1NrNog=,tag:33FjUcKH/2ypImxYwtNmhw==,type:str]
+sops:
+    age:
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSA4TnNDaUZGV0JZSEdmL2ho
+            N0N1NVJoc2gwQnhyd2o0TXVPbEM4Nk1sWnpFCkNncjBvYTBPRE9nQ09ITm16QUZo
+            U3JpZ1puOGJSZVRJcW9yWnpmbTNXMmsKLS0tIGxLNzM4NWJqd2t3Mm03R0crWnBq
+            Y2RMcm9MR05sZjBYejJvSzlZMGdud0kKfYKYAp4wFyDvEWZd32QxCZ7pncqBPwqo
+            cN0MZc1BESAuuczvcie9E+DqR0FOO4M19UfKIj/e1cw+x49T6KBFXA==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age137z0k38fp0keu5ns4005e7cv4qlwt320wyf96y48a57sv42k6v9szh5ng3
+    encrypted_regex: ^(data|stringData)$
+    lastmodified: "2026-06-10T17:33:31Z"
+    mac: ENC[AES256_GCM,data:8kgxE/BcXlTnEpeHThKJtcWNmj43AQ9iF5SSJFnvksvpWj8pa3vYVaIS1p1Xxv037BYsx8zgZvLlkAGYUxcBKiBwKhwoehZOtiTzSKxdJzp3kDrfIcPd+t1mEcAnRLCoEBT3Tr/gGoK/BhaD/y0N4tgbwyf6FV8bfW+ZPf/+bEM=,iv:bi0nl/pq6hJud3VKeQSQqSyaWnNjU1VfipMOnaSrdfg=,tag:rz8MHdhIxgSnqXqRn4vfTw==,type:str]
+    version: 3.13.1

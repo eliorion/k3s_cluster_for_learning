@@ -7,6 +7,9 @@ resources:
   - ../../../base/databases/fbref
   # grafana_ro role password (basic-auth) — consumed by the CNPG managed role.
   - fbref-grafana-ro.enc.yaml
+  # nocodb role password (basic-auth) — consumed by the CNPG managed role; the
+  # same creds are typed into NocoDB's external Data Source form.
+  - fbref-nocodb.enc.yaml
   # GHCR pull secret for the private fbref image (own ns → own pull secret).
   # Added out of band: create a read:packages PAT, sops-encrypt it as this file
   # (same name `ghcr-pull-secret`, fbref namespace).

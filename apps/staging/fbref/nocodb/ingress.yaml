@@ -1,0 +1,17 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nocodb
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: fbref.eliorion.fr
+      http:
+        paths:
+          - backend:
+              service:
+                name: nocodb
+                port:
+                  number: 8080
+            path: /
+            pathType: Prefix

@@ -27,17 +27,15 @@ spec:
     initdb:
       database: fbref
       owner: app
-      # Full schema + grants. Runs as superuser on a fresh cluster (idempotent
-      # IF NOT EXISTS — safe to re-run). Source of truth stays
-      # services/fbref/postgres/init.sql; this ConfigMap is a hand-synced copy.
-      postInitApplicationSQLRefs:
-        configMapRefs:
-          - name: fbref-db-init
-            key: init.sql
+      # No postInit bootstrap: the schema is owned by the fbref-db-migrations
+      # Flyway Job (asp repo, services/fbref/postgres/migrations/) — same
+      # migration path as asp. A fresh cluster starts empty; Flyway builds the
+      # schema as `app`, which then owns every object.
 
-  # Operator-managed read-only role for Grafana. The role itself is created
-  # (NOLOGIN) by init.sql; here it is flipped to LOGIN and its password is set
-  # from the basic-auth Secret (staging overlay, sops-encrypted).
+  # Operator-managed roles. The roles themselves are created (NOLOGIN) by the
+  # Flyway migrations; here they are flipped to LOGIN and their passwords set
+  # from basic-auth Secrets (staging overlay, sops-encrypted). Order vs the
+  # migration Job is irrelevant — both sides are idempotent.
   managed:
     roles:
       - name: grafana_ro
@@ -45,6 +43,13 @@ spec:
         login: true
         passwordSecret:
           name: fbref-grafana-ro
+      # Row-edit role for the NocoDB admin UI (SELECT all + url_queue DML +
+      # worker_control UPDATE — grants live in migration V3).
+      - name: nocodb
+        ensure: present
+        login: true
+        passwordSecret:
+          name: fbref-nocodb
 
   storage:
     size: 5Gi

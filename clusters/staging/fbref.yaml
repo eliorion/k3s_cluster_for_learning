@@ -1,7 +1,7 @@
 # fbref deploys independently of asp — its own Flux Kustomizations (own ns,
-# own CNPG cluster, own reconcile/health). Mirrors the asp databases→apps shape
-# (clusters/staging/apps.yaml) but scoped to the fbref paths. No db-migrations
-# tier: fbref has no Flyway (schema bootstraps via the CNPG init ConfigMap).
+# own CNPG cluster, own reconcile/health). Mirrors the asp
+# databases→db-migrations→apps shape (clusters/staging/apps.yaml) but scoped
+# to the fbref paths: the fbref-db-migrations Flyway Job owns the schema.
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
@@ -24,6 +24,27 @@ spec:
     secretRef:
       name: sops-age
 ---
+# Runs the fbref Flyway Job and gates fbref-app on its success (mirrors the
+# asp db-migrations Kustomization).
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: fbref-db-migrations
+  namespace: flux-system
+spec:
+  interval: 1m0s
+  dependsOn:
+    - name: fbref-databases # needs fbref-db (its fbref-db-app secret) + ghcr-pull-secret
+  retryInterval: 1m
+  timeout: 5m # > backoffLimit(3) x migration runtime
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  path: ./apps/staging/databases/db-migrations/fbref
+  prune: true
+  force: true # Job is immutable — image-tag bump must delete+recreate
+  wait: true # Ready only when the Job COMPLETES; failed Job = NotReady
+---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
@@ -32,7 +53,7 @@ metadata:
 spec:
   interval: 1m0s
   dependsOn:
-    - name: fbref-databases # needs fbref-db + its app/pull secrets first
+    - name: fbref-db-migrations # schema must be migrated before the app rolls out
   retryInterval: 1m
   timeout: 10m # > the HelmRelease timeout (chart helm-test + rollback)
   sourceRef:
