@@ -1,0 +1,24 @@
+# Databases only for now — db-migrations and apps follow once the data
+# migration (doc 06 step 3) is verified.
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: databases
+  namespace: flux-system
+spec:
+  interval: 1m0s
+  dependsOn:
+    - name: infra-cnpg-plugin # CNPG operator + barman plugin must exist first
+  retryInterval: 1m
+  # First reconcile recovers asp-db from R2 (base backup download + WAL replay).
+  timeout: 15m
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  path: ./apps/talos-staging/databases
+  prune: true
+  wait: true # Ready when the CNPG Cluster reports Ready
+  decryption:
+    provider: sops
+    secretRef:
+      name: sops-age

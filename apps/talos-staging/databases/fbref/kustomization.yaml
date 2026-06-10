@@ -1,0 +1,20 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: fbref
+
+resources:
+  - ../../../base/databases/fbref
+  # grafana_ro role password (basic-auth) — consumed by the CNPG managed role.
+  - fbref-grafana-ro.enc.yaml
+  # GHCR pull secret for the private fbref image (own ns → own pull secret).
+  - ghcr-pull-secret.enc.yaml
+
+patches:
+  # PVCs on Longhorn (explicit — also the cluster default SC on Talos).
+  # fbref has no R2 backups, so it bootstraps fresh (initdb) and gets its
+  # data via pg_dump from the k3s cluster (doc 06 step 3).
+  - path: cluster-storage-patch.yaml
+    target:
+      kind: Cluster
+      name: fbref-db

@@ -1,0 +1,34 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: asp
+
+resources:
+  - ../../../base/databases/asp
+  # Pull secret lives here (not in apps) so the migration Job can pull
+  # ghcr.io/eliorion/asp-db-migrations before the apps tier reconciles.
+  - ghcr-pull-secret.enc.yaml
+  - r2-backup-credentials.enc.yaml
+  - objectstore.yaml
+  - scheduledbackup.yaml
+
+patches:
+  # Attach the Barman Cloud Plugin for R2 backups. serverName asp-db-talos:
+  # this cluster archives to its own path in the bucket — the k3s cluster
+  # still archives WAL under asp-db until decommission, and two archivers
+  # on one path corrupt the timeline.
+  - path: cluster-backup-patch.yaml
+    target:
+      kind: Cluster
+      name: asp-db
+  # TEMPORARY seed-from-k3s — remove after the Talos asp-db is seeded and
+  # verified (doc 06 step 3). Inert once the cluster exists.
+  - path: cluster-recovery-patch.yaml
+    target:
+      kind: Cluster
+      name: asp-db
+  # PVCs on Longhorn (explicit — also the cluster default SC on Talos).
+  - path: cluster-storage-patch.yaml
+    target:
+      kind: Cluster
+      name: asp-db
