@@ -38,7 +38,7 @@ Dependency-ordered; each block is one commit/PR.
 2. **CNPG plugin + operator** (`infra-cnpg-plugin`, `infrastructure-controllers`)
    — operator is stateless; needs `sops-age` (decryption) on Talos first.
 3. **Databases (the only real data migration)** — for each CNPG cluster
-   (asp `databases`, fbref `fbref-databases`):
+   (asp + fbref, both under `databases`):
    - [ ] Trigger + verify a fresh barman-cloud backup to R2 on k3s
          (`kubectl get backups.postgresql.cnpg.io`, check R2 object timestamps).
    - [ ] Scale app writers down on k3s (avoid writes after the backup).
@@ -47,7 +47,7 @@ Dependency-ordered; each block is one commit/PR.
          Longhorn automatically (default class).
    - [ ] Verify row counts / latest timestamps match before deleting the k3s
          cluster resources.
-4. **Apps** (`apps`, `db-migrations`, `fbref-app` + GitRepository sources,
+4. **Apps** (`apps`, `db-migrations` + GitRepository sources,
    ghcr pull secrets) — after their databases are on Talos.
 5. **Nexus** (`infrastructure-services` part 1) — 80Gi `local-path` PVC holds
    proxy caches only (pypi, docker-hub, ghcr, docker-cache). Don't migrate

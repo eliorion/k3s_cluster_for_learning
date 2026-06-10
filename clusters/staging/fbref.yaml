@@ -19,7 +19,7 @@ spec:
     kind: GitRepository
     name: flux-system
   path: ./apps/staging/databases/fbref
-  prune: false
+  prune: true
   wait: true # Ready when the CNPG fbref-db Cluster reports Ready
   decryption:
     provider: sops
@@ -41,7 +41,7 @@ spec:
     kind: GitRepository
     name: flux-system
   path: ./apps/staging/fbref
-  prune: false
+  prune: true
   wait: true
   # Surface the fbref app health here: NotReady when the fbref HelmRelease fails
   # (e.g. an upgrade auto-rolled-back), independent of asp.

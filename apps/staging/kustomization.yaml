@@ -3,10 +3,9 @@ kind: Kustomization
 
 # Explicit list so the `apps` Flux Kustomization does NOT pick up databases/
 # (owned by the `databases` and `db-migrations` Flux Kustomizations).
-# fbref/ is intentionally NOT listed — it has its own Flux Kustomization
-# (fbref-app, clusters/staging/fbref.yaml) so it reconciles independently of asp.
 resources:
   - asp/
   - audiobookshelf/
+  - fbref/
   - glpi/
   - linkding/
