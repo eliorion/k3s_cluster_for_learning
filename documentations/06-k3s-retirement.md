@@ -71,24 +71,22 @@ Dependency-ordered; each block is one commit/PR.
          cluster resources.
 4. **Apps** (`apps`, `db-migrations` + GitRepository sources,
    ghcr pull secrets) — after their databases are on Talos.
-5. **Nexus** (`infrastructure-services` part 1) — 80Gi `local-path` PVC holds
-   proxy caches only (pypi, docker-hub, ghcr, docker-cache). Don't migrate
-   data: deploy fresh on Talos/Longhorn and let caches re-fill. CI will be
-   slow on first runs.
-   - [ ] Update any hardcoded `nexus.nexus.svc.cluster.local:500x` references
-         if the namespace/ports change (they shouldn't).
-6. **ARC** (`infra-arc-controller` + runner set) — stateless; GitHub app
-   secret is SOPS-encrypted, moves with the YAML. Runner pods need the
-   insecure-registry dind template to still resolve the Nexus connectors.
-   - [ ] Suspend the k3s runner set first so two scale sets don't register
-         for `Eliorion/asp` simultaneously.
-7. **Cloudflare tunnel** — cutover moment for external traffic.
-   - [ ] Deploy cloudflared on Talos (same SOPS credentials), verify it
-         connects, then remove the k3s deployment. Tunnel tolerates two
-         replicas briefly; keep the overlap window short.
+   ✅ done 2026-06-10 — db-migrations/apps reuse the ./apps/staging paths;
+   Flyway ran clean against the recovered asp-db. `asp-deploy-key` was
+   recreated out-of-band on Talos (k3s secret unreachable) — its public key
+   must be a read-only deploy key on the asp repo.
+   audiobookshelf/glpi/linkding/keycloak overlays render no workloads yet
+   (scaffolding) — same as on k3s, nothing migrated.
+5. **Nexus** ✅ done 2026-06-10 — fresh deploy on Longhorn (80Gi), chart
+   value `persistence.storageClass` flipped local-path → longhorn in base.
+   Caches re-fill from upstream; first CI runs slow.
+6. **ARC runner set** ✅ done 2026-06-10 — plain move (single-cluster
+   constraint: no scale-set name conflict possible).
+7. **Cloudflare tunnel** ✅ done 2026-06-10 — plain move, connected from
+   Talos (k3s off, no overlap).
 8. **Monitoring** — already copied at step 2 (CRD dependency). Both clusters
    alert to the same Telegram group until k3s is decommissioned.
-9. **Renovate** — stateless, plain move.
+9. **Renovate** ✅ done 2026-06-10 — hourly CronJob scheduled on Talos.
 
 ## Decommission k3s
 
