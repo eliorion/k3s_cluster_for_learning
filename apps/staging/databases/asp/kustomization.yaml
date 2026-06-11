@@ -13,10 +13,15 @@ resources:
   - scheduledbackup.yaml
 
 patches:
-  # Attach the Barman Cloud Plugin for R2 backups (serverName asp-db; the
-  # transitional asp-db-talos path and the k3s-era history were pruned from
-  # the bucket on 2026-06-11 — see doc 06).
+  # Attach the Barman Cloud Plugin for R2 backups. Archives to asp-db-r1
+  # since the 2026-06-11 volume-loss recovery (restoring FROM asp-db — see
+  # cluster-recovery-patch.yaml; old asp-db path prunable once confident).
   - path: cluster-backup-patch.yaml
+    target:
+      kind: Cluster
+      name: asp-db
+  # Recovery bootstrap from the R2 archive (2026-06-11 volume loss, doc 07).
+  - path: cluster-recovery-patch.yaml
     target:
       kind: Cluster
       name: asp-db
