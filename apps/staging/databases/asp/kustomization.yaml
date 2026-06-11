@@ -13,11 +13,9 @@ resources:
   - scheduledbackup.yaml
 
 patches:
-  # Attach the Barman Cloud Plugin for R2 backups. serverName asp-db-talos:
-  # this cluster archives to its own path in the bucket — the retired k3s
-  # cluster's history sits under asp-db (unmanaged; prune from R2 someday).
-  # The cluster was seeded from that path at creation (seed-from-k3s
-  # recovery patch, removed after verification — see doc 06 step 3).
+  # Attach the Barman Cloud Plugin for R2 backups (serverName asp-db; the
+  # transitional asp-db-talos path and the k3s-era history were pruned from
+  # the bucket on 2026-06-11 — see doc 06).
   - path: cluster-backup-patch.yaml
     target:
       kind: Cluster
