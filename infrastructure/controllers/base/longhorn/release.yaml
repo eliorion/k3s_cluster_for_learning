@@ -25,6 +25,6 @@ spec:
       # Must match the Talos kubelet extraMounts bind destination.
       defaultDataPath: /var/lib/longhorn
       # Single-node cluster: more than one replica can never be scheduled.
-      defaultReplicaCount: 1
+      defaultReplicaCount: 2
     persistence:
-      defaultClassReplicaCount: 1
+      defaultClassReplicaCount: 2
