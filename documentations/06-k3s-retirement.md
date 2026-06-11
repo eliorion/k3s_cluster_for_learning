@@ -88,6 +88,26 @@ Dependency-ordered; each block is one commit/PR.
    alert to the same Telegram group until k3s is decommissioned.
 9. **Renovate** ✅ done 2026-06-10 — hourly CronJob scheduled on Talos.
 
+## Scraper proxy path (tailscale lane) — fixed 2026-06-11
+
+The leboncoin "tailscale" proxy lane (`apps/staging/asp/release.yaml`,
+`http://100.100.98.5:8888` = tinyproxy on rbp-asp, a tailnet member) needs a
+LAN→tailnet path. The chain, end to end:
+
+- **Talos machine config** (`bootstraping/controlplane.yaml`,
+  `machine.network.interfaces`): static route `100.64.0.0/10` via
+  `192.168.1.200` (the Proxmox **host**, which runs the only tailscaled +
+  advertises `192.168.1.0/24`; `net.ipv4.ip_forward=1` there).
+- **rbp-asp** (proxy host): `sudo tailscale up --accept-routes --hostname=rsp-asp --ssh`
+  — without accept-routes it has no return route to `192.168.1.x` and SYNs
+  blackhole (symptom: playwright `Page.goto: Timeout`).
+- **tinyproxy** on rbp-asp: `Allow 192.168.1.0/24` in
+  `/etc/tinyproxy/tinyproxy.conf` (symptom otherwise:
+  `NS_ERROR_PROXY_FORBIDDEN` / `403 Access denied`). Gotcha: a failed
+  `systemctl restart` can leave the OLD process holding the port
+  (`Could not create listening sockets`, status=71) — `pkill tinyproxy`
+  then restart.
+
 ## Decommission k3s
 
 - [ ] All stateful/singleton entrypoints moved; only `flux-system/` and the
