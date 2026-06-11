@@ -26,9 +26,9 @@ boot is purely a data-extraction window.
       ```bash
       export KUBECONFIG=bootstraping/kubeconfig
       kubectl create secret generic sops-age -n flux-system \
-        --from-file=age.agekey=clusters/talos-staging/age.agekey
+        --from-file=age.agekey=clusters/staging/age.agekey
       ```
-      (the age key + .envrc moved to `clusters/talos-staging/` at decommission)
+      (the age key + .envrc live in `clusters/staging/`, local + gitignored)
 - [ ] Configure Longhorn `backupTarget` → Cloudflare R2 (same bucket family as
       CNPG barman). Longhorn data lives on the Talos EPHEMERAL partition via
       the `/var/lib/longhorn` bind mount: it survives reboots and upgrades but
@@ -126,9 +126,13 @@ LAN→tailnet path. The chain, end to end:
       read-only key (its private half died with the k3s cluster).
 - [ ] Delete `~/k3s-staging-kubeconfig.bak` once the VM is gone.
 
-## Afterwards (separate task)
+## Afterwards
 
-Rename `clusters/talos-staging` → `clusters/staging`: re-run
-`flux bootstrap github` with the new `--path` (new deploy key, new
-`gotk-sync.yaml` path) and delete the old path + key. Cosmetic — do it only
-once everything is stable.
+✅ Renamed `clusters/talos-staging` → `clusters/staging` (2026-06-11) without
+re-bootstrapping: `git mv` + edit the path in `gotk-sync.yaml` + patch the
+in-cluster `flux-system` Kustomization to the new path before/with the push
+(otherwise Flux loses its own path and can never read the fix). The existing
+deploy key keeps working — only its title still says `talos-staging`
+(cosmetic). The `apps/talos-staging/` overlay dir intentionally keeps its
+name (renaming it into `apps/staging/` would collide with the k3s-era
+databases overlay still there — separate cleanup).
