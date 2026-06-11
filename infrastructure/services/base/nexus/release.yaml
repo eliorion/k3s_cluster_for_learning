@@ -37,7 +37,8 @@ spec:
         cpu: 500m
         memory: 2Gi
       limits:
-        memory: 2560Mi
+        cpu: 10
+        memory: 6Gi
     rootPassword:
       # SOPS-encrypted secret provided by the staging overlay.
       secret: nexus-root-password
