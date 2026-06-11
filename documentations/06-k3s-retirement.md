@@ -120,10 +120,11 @@ LAN→tailnet path. The chain, end to end:
       `age.agekey` + `.envrc` moved to `clusters/talos-staging/`; the k3s
       kubeconfig backed up to `~/k3s-staging-kubeconfig.bak`.
 - [ ] Delete the k3s VM on Proxmox (or wipe/repurpose it).
-- [ ] GitHub `homelab_v1` repo → Settings → Deploy keys: delete the stale
-      `flux-system-main-flux-system-./clusters/staging` key.
-- [ ] GitHub `asp` repo → Settings → Deploy keys: delete the old k3s-era
-      read-only key (its private half died with the k3s cluster).
+- [x] GitHub `homelab_v1` deploy keys: stale k3s key deleted 2026-06-11 via
+      API (matched by public key — titles lie after the rename: the LIVE key
+      is still titled `...talos-staging`). A `./clusters/production` key from
+      2026-06-02 remains — review whether production is still planned.
+- [x] GitHub `asp` deploy keys: only the live Talos key exists.
 - [ ] Delete `~/k3s-staging-kubeconfig.bak` once the VM is gone.
 
 ## Afterwards
