@@ -1,5 +1,11 @@
 # Retiring the k3s staging cluster
 
+> **✅ RETIREMENT COMPLETE — 2026-06-11.** The Talos cluster
+> (`staging-controlplane-1`, 192.168.1.41) is the staging cluster, Flux path
+> `clusters/staging/`. The k3s VM is deleted. Kept for reference: the
+> migration order, the WAL/seeding gotchas, and the scraper proxy path.
+> Only leftover: prune the unmanaged `asp-db` archive path in R2 someday.
+
 Migration checklist: move everything from the k3s node (`192.168.1.50`,
 Debian, Flux path `clusters/staging`) to the Talos node
 (`staging-controlplane-1`, `192.168.1.41`, Flux path `clusters/talos-staging`).
@@ -119,13 +125,13 @@ LAN→tailnet path. The chain, end to end:
 - [x] `clusters/staging/` deleted from the repo (2026-06-11). Local
       `age.agekey` + `.envrc` moved to `clusters/talos-staging/`; the k3s
       kubeconfig backed up to `~/k3s-staging-kubeconfig.bak`.
-- [ ] Delete the k3s VM on Proxmox (or wipe/repurpose it).
+- [x] k3s VM deleted from Proxmox (2026-06-11).
 - [x] GitHub `homelab_v1` deploy keys: stale k3s key deleted 2026-06-11 via
       API (matched by public key — titles lie after the rename: the LIVE key
       is still titled `...talos-staging`). A `./clusters/production` key from
       2026-06-02 remains — review whether production is still planned.
 - [x] GitHub `asp` deploy keys: only the live Talos key exists.
-- [ ] Delete `~/k3s-staging-kubeconfig.bak` once the VM is gone.
+- [x] `~/k3s-staging-kubeconfig.bak` deleted (2026-06-11).
 
 ## Afterwards
 
