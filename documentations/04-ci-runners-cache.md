@@ -227,6 +227,39 @@ sudo sysctl --system
 Persists across reboots via `systemd-sysctl`; running pods pick it up
 immediately.
 
+### Runner pods never spawn: `violates PodSecurity "baseline:latest": privileged`
+
+After the move to Talos (doc 07), the listener and controller stayed
+healthy — the listener saw queued jobs and scaled the `EphemeralRunnerSet`,
+but every `EphemeralRunner` went `Failed` with:
+
+```
+Failed to create the pod: pods "self-hosted-arc-...-runner-..." is forbidden:
+violates PodSecurity "baseline:latest": privileged (container "dind" must not
+set securityContext.privileged=true)
+```
+
+Talos enforces the `baseline` Pod Security Standard cluster-wide by default;
+k3s enforced nothing, so the privileged dind sidecar (required for the
+manual dind template, above) used to be allowed implicitly. Fix: label the
+`arc-runners` namespace to allow privileged pods, in
+`infrastructure/controllers/base/arc/namespace.yaml`:
+
+```yaml
+metadata:
+  name: arc-runners
+  labels:
+    pod-security.kubernetes.io/enforce: privileged
+```
+
+`arc-systems` does not need it — the controller and listener pass
+`baseline`. After Flux reconciles, clear the stuck runners so the
+controller recreates them clean:
+
+```bash
+kubectl -n arc-runners delete ephemeralrunner --all
+```
+
 ### CI pull fails: `dial tcp ...:500x: connect: connection refused`
 
 Nexus only opens a docker connector port once the repo's config applied
