@@ -4,7 +4,10 @@
 > (`staging-controlplane-1`, 192.168.1.41) is the staging cluster, Flux path
 > `clusters/staging/`. The k3s VM is deleted. Kept for reference: the
 > migration order, the WAL/seeding gotchas, and the scraper proxy path.
-> Only leftover: prune the unmanaged `asp-db` archive path in R2 someday.
+> R2 finalized 2026-06-11: the k3s history and the transitional
+> `asp-db-talos` prefix were both deleted; the live cluster archives under
+> the canonical `serverName: asp-db` with a fresh post-rename base backup.
+> No leftovers remain.
 
 Migration checklist: move everything from the k3s node (`192.168.1.50`,
 Debian, Flux path `clusters/staging`) to the Talos node
