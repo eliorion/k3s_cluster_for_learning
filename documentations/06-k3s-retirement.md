@@ -26,8 +26,9 @@ boot is purely a data-extraction window.
       ```bash
       export KUBECONFIG=bootstraping/kubeconfig
       kubectl create secret generic sops-age -n flux-system \
-        --from-file=age.agekey=clusters/staging/age.agekey
+        --from-file=age.agekey=clusters/talos-staging/age.agekey
       ```
+      (the age key + .envrc moved to `clusters/talos-staging/` at decommission)
 - [ ] Configure Longhorn `backupTarget` → Cloudflare R2 (same bucket family as
       CNPG barman). Longhorn data lives on the Talos EPHEMERAL partition via
       the `/var/lib/longhorn` bind mount: it survives reboots and upgrades but
@@ -110,15 +111,20 @@ LAN→tailnet path. The chain, end to end:
 
 ## Decommission k3s
 
-- [ ] All stateful/singleton entrypoints moved; only `flux-system/` and the
-      copied controller entrypoints remain in `clusters/staging/` — safe to
-      delete with the cluster.
-- [ ] Final fresh R2 backups exist for both CNPG clusters (belt & braces).
-- [ ] Power off the k3s node.
-- [ ] GitHub repo → Settings → Deploy keys: delete the staging key
-      (`flux-system-main-flux-system-./clusters/staging`).
-- [ ] Delete `clusters/staging/` from the repo.
-- [ ] Remove the k3s entry from local kubeconfigs.
+- [x] All entrypoints moved (2026-06-11).
+- [x] R2 backups: Talos asp-db archives to `asp-db-talos`; the k3s history
+      stays under `asp-db` in the same bucket. NOTE: nothing manages the old
+      `asp-db` path anymore — its objects linger until manually pruned from
+      R2 (keep until confident, then delete).
+- [x] `clusters/staging/` deleted from the repo (2026-06-11). Local
+      `age.agekey` + `.envrc` moved to `clusters/talos-staging/`; the k3s
+      kubeconfig backed up to `~/k3s-staging-kubeconfig.bak`.
+- [ ] Delete the k3s VM on Proxmox (or wipe/repurpose it).
+- [ ] GitHub `homelab_v1` repo → Settings → Deploy keys: delete the stale
+      `flux-system-main-flux-system-./clusters/staging` key.
+- [ ] GitHub `asp` repo → Settings → Deploy keys: delete the old k3s-era
+      read-only key (its private half died with the k3s cluster).
+- [ ] Delete `~/k3s-staging-kubeconfig.bak` once the VM is gone.
 
 ## Afterwards (separate task)
 
