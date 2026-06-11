@@ -1,6 +1,6 @@
 # Ordering: databases (CNPG cluster + secrets) → db-migrations (Flyway Job)
-# → apps. databases uses the talos-staging overlay (recovery seed + longhorn
-# storage); db-migrations and apps reuse the cluster-agnostic staging paths.
+# → apps. On a release, running pods keep the previous image tags while the
+# migration Job runs; new tags only apply once the Job completes.
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
@@ -11,12 +11,11 @@ spec:
   dependsOn:
     - name: infra-cnpg-plugin # CNPG operator + barman plugin must exist first
   retryInterval: 1m
-  # First reconcile recovers asp-db from R2 (base backup download + WAL replay).
   timeout: 5m
   sourceRef:
     kind: GitRepository
     name: flux-system
-  path: ./apps/talos-staging/databases
+  path: ./apps/staging/databases
   prune: true
   wait: true # Ready when the CNPG Cluster reports Ready
   decryption:

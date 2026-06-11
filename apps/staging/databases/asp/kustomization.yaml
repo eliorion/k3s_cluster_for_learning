@@ -13,8 +13,17 @@ resources:
   - scheduledbackup.yaml
 
 patches:
-  # Attach the Barman Cloud Plugin to the CNPG cluster for R2 backups.
+  # Attach the Barman Cloud Plugin for R2 backups. serverName asp-db-talos:
+  # this cluster archives to its own path in the bucket — the retired k3s
+  # cluster's history sits under asp-db (unmanaged; prune from R2 someday).
+  # The cluster was seeded from that path at creation (seed-from-k3s
+  # recovery patch, removed after verification — see doc 06 step 3).
   - path: cluster-backup-patch.yaml
+    target:
+      kind: Cluster
+      name: asp-db
+  # PVCs on Longhorn (explicit — also the cluster default SC on Talos).
+  - path: cluster-storage-patch.yaml
     target:
       kind: Cluster
       name: asp-db

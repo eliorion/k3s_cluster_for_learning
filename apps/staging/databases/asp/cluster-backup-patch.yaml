@@ -8,4 +8,5 @@ spec:
       isWALArchiver: true
       parameters:
         barmanObjectName: r2-store
-        serverName: asp-db
+        # Own archive path — k3s still archives under asp-db (see kustomization.yaml).
+        serverName: asp-db-talos
