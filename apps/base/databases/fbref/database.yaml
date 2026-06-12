@@ -27,16 +27,13 @@ spec:
     initdb:
       database: fbref
       owner: app
-      # Full schema + grants. Runs as superuser on a fresh cluster (idempotent
-      # IF NOT EXISTS — safe to re-run). Source of truth stays
-      # services/fbref/postgres/init.sql; this ConfigMap is a hand-synced copy.
-      postInitApplicationSQLRefs:
-        configMapRefs:
-          - name: fbref-db-init
-            key: init.sql
+      # Schema is owned by Flyway (fbref-db-migrations Job, gated ahead of apps),
+      # mirroring asp — no postInit bootstrap. A fresh cluster comes up empty and
+      # the Job applies V1+; the existing cluster is baselined at 0 and healed by
+      # V2/V3 (drops the stale kind CHECK, adds worker_control).
 
-  # Operator-managed read-only role for Grafana. The role itself is created
-  # (NOLOGIN) by init.sql; here it is flipped to LOGIN and its password is set
+  # Operator-managed read-only role for Grafana. Flyway V1 creates the role
+  # (NOLOGIN); here CNPG ensures it present + flips it to LOGIN with the password
   # from the basic-auth Secret (staging overlay, sops-encrypted).
   managed:
     roles:
