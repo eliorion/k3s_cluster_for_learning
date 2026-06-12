@@ -42,6 +42,12 @@ spec:
         login: true
         passwordSecret:
           name: fbref-grafana-ro
+      # Flyway V3 creates the worker-control/nocodb roles while connected as
+      # app — needs CREATEROLE (hit 2026-06-12 on fresh initdb, doc 07).
+      - name: app
+        ensure: present
+        login: true
+        createrole: true
 
   storage:
     size: 5Gi
