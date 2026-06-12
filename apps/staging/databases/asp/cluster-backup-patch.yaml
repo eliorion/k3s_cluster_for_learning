@@ -8,5 +8,4 @@ spec:
       isWALArchiver: true
       parameters:
         barmanObjectName: r2-store
-        # asp-db-r1: post volume-loss recovery archive (restoring FROM asp-db).
-        serverName: asp-db-r1
+        serverName: asp-db
