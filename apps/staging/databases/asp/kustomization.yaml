@@ -20,11 +20,9 @@ patches:
     target:
       kind: Cluster
       name: asp-db
-  # Recovery bootstrap from the R2 archive (2026-06-11 volume loss, doc 07).
-  - path: cluster-recovery-patch.yaml
-    target:
-      kind: Cluster
-      name: asp-db
+  # NOTE 2026-06-12: R2 restore was impossible — WAL 2C0 (begin_wal of the
+  # only base backup) died with the asp-db-talos prefix prune; asp-db is a
+  # fresh initdb. Salvage attempt from the base backup tar tracked in doc 07.
   # PVCs on Longhorn (explicit — also the cluster default SC on Talos).
   - path: cluster-storage-patch.yaml
     target:
