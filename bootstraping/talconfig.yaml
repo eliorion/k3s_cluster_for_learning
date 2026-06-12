@@ -1,0 +1,144 @@
+---
+# talhelper config for the staging Talos cluster.
+# Single source of truth -> renders bootstraping/clusterconfig/*.yaml.
+# Secrets come from talsecret.sops.yaml (extracted from the live cluster's
+# existing PKI via `talhelper gensecret -f` -- DO NOT regenerate).
+clusterName: Homelab_staging
+talosVersion: v1.13.4
+kubernetesVersion: v1.36.1
+endpoint: https://192.168.1.100:6443
+
+allowSchedulingOnControlPlanes: true
+
+additionalMachineCertSans:
+  - 192.168.1.100
+additionalApiServerCertSans:
+  - 192.168.1.100
+
+clusterPodNets:
+  - 10.244.0.0/16
+clusterSvcNets:
+  - 10.96.0.0/12
+
+# Phase B: Talos installs NO CNI -- Cilium 1.19.4 is managed by Flux
+# (infrastructure/controllers/base/cilium). kube-proxy disabled below; Cilium
+# does kube-proxy replacement via KubePrism (localhost:7445).
+cniConfig:
+  name: none
+
+nodes:
+  - hostname: staging-controlplane-1   # AMD box
+    ipAddress: 192.168.1.101
+    controlPlane: true
+    installDisk: /dev/nvme0n1
+    talosImageURL: factory.talos.dev/installer/65cf8364cd0de4cf7b851dc7067a2db83d0ba04f11d8635c6cd3334be6ffb825
+    nameservers:
+      - 192.168.1.1
+    networkInterfaces:
+      - deviceSelector:
+          physical: true
+        dhcp: false
+        addresses:
+          - 192.168.1.101/24
+        vip:
+          ip: 192.168.1.100
+        routes:
+          - network: 0.0.0.0/0
+            gateway: 192.168.1.1
+          - network: 100.64.0.0/10
+            gateway: 192.168.1.200
+
+  - hostname: staging-controlplane-2   # Intel box
+    ipAddress: 192.168.1.102
+    controlPlane: true
+    installDisk: /dev/sda
+    talosImageURL: factory.talos.dev/installer/36cd6536eaec8ba802be2d38974108359069cedba8857302f69792b26b87c010
+    nameservers:
+      - 192.168.1.1
+    networkInterfaces:
+      - deviceSelector:
+          physical: true
+        dhcp: false
+        addresses:
+          - 192.168.1.102/24
+        vip:
+          ip: 192.168.1.100
+        routes:
+          - network: 0.0.0.0/0
+            gateway: 192.168.1.1
+          - network: 100.64.0.0/10
+            gateway: 192.168.1.200
+
+  - hostname: staging-controlplane-3   # Intel box
+    ipAddress: 192.168.1.103
+    controlPlane: true
+    installDisk: /dev/sda
+    talosImageURL: factory.talos.dev/installer/36cd6536eaec8ba802be2d38974108359069cedba8857302f69792b26b87c010
+    nameservers:
+      - 192.168.1.1
+    networkInterfaces:
+      - deviceSelector:
+          physical: true
+        dhcp: false
+        addresses:
+          - 192.168.1.103/24
+        vip:
+          ip: 192.168.1.100
+        routes:
+          - network: 0.0.0.0/0
+            gateway: 192.168.1.1
+          - network: 100.64.0.0/10
+            gateway: 192.168.1.200
+
+# Shared machine-level settings that talhelper has no first-class field for.
+patches:
+  - |-
+    machine:
+      kubelet:
+        defaultRuntimeSeccompProfileEnabled: true
+        disableManifestsDirectory: true
+        extraArgs:
+          rotate-server-certificates: true
+        extraMounts:
+          - destination: /var/lib/longhorn
+            type: bind
+            source: /var/lib/longhorn
+            options:
+              - bind
+              - rshared
+              - rw
+      install:
+        wipe: false
+        grubUseUKICmdline: true
+      features:
+        diskQuotaSupport: true
+        kubePrism:
+          enabled: true
+          port: 7445
+        hostDNS:
+          enabled: true
+          forwardKubeDNSToHost: true
+      nodeLabels:
+        node.kubernetes.io/exclude-from-external-load-balancers: ""
+  # NOTE: PodSecurity admissionControl + auditPolicy are emitted by talhelper
+  # defaults (identical to the live cluster) -- do NOT re-add them here or the
+  # exemptions list gets a duplicate kube-system entry.
+  - |-
+    cluster:
+      # Cilium replaces kube-proxy -- do not deploy it.
+      proxy:
+        disabled: true
+      discovery:
+        enabled: true
+        registries:
+          kubernetes:
+            disabled: true
+          service: {}
+      extraManifests:
+        - https://raw.githubusercontent.com/alex1989hu/kubelet-serving-cert-approver/main/deploy/standalone-install.yaml
+        - https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+        # Gateway API CRDs (Cilium 1.19 requires v1.4.1 standard channel) -- no
+        # secrets, safe to fetch by URL. TLSRoute (experimental) included so the
+        # Cilium operator does not log missing-CRD errors.
+        - https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.4.1/standard-install.yaml
+        - https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.4.1/config/crd/experimental/gateway.networking.k8s.io_tlsroutes.yaml

@@ -1,0 +1,81 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: cilium
+  namespace: flux-system
+spec:
+  targetNamespace: kube-system
+  interval: 30m
+  chart:
+    spec:
+      # Renovate keeps this pinned version current.
+      chart: cilium
+      version: "1.19.4"
+      sourceRef:
+        kind: HelmRepository
+        name: cilium
+        namespace: flux-system
+      interval: 12h
+  install:
+    createNamespace: false # kube-system already exists
+  values:
+    ipam:
+      mode: kubernetes # reuse the per-node podCIDR Talos allocates (10.244.0.0/16)
+    # kube-proxy replacement -- Talos sets cluster.proxy.disabled, KubePrism
+    # (machine.features.kubePrism, port 7445) is the local apiserver LB.
+    kubeProxyReplacement: true
+    k8sServiceHost: localhost
+    k8sServicePort: 7445
+    # Talos requires these capabilities explicitly (Sidero docs).
+    securityContext:
+      capabilities:
+        ciliumAgent:
+          [CHOWN, KILL, NET_ADMIN, NET_RAW, IPC_LOCK, SYS_ADMIN, SYS_RESOURCE, DAC_OVERRIDE, FOWNER, SETGID, SETUID]
+        cleanCiliumState: [NET_ADMIN, SYS_ADMIN, SYS_RESOURCE]
+    # Talos manages cgroup mounts itself.
+    cgroup:
+      autoMount:
+        enabled: false
+      hostRoot: /sys/fs/cgroup
+    # DO NOT enable bpf.masquerade -- machine.features.hostDNS.forwardKubeDNSToHost
+    # is true and bpf.masquerade breaks CoreDNS (Sidero docs).
+    bpf:
+      masquerade: false
+    # All 3 nodes share one L2 segment; tunnel is the safe default for the
+    # migration (switch to native routing once stable).
+    routingMode: tunnel
+    tunnelProtocol: vxlan
+    # Gateway API ingress (CRDs ship via Talos extraManifests, gateway-api v1.4.1).
+    gatewayAPI:
+      enabled: true
+    # Bare-metal LoadBalancer (replaces k3s ServiceLB). The IP pool + L2 policy
+    # are CRs in ./config (CiliumLoadBalancerIPPool + CiliumL2AnnouncementPolicy).
+    l2announcements:
+      enabled: true
+    externalIPs:
+      enabled: true
+    hubble:
+      enabled: true
+      tls:
+        auto:
+          enabled: true
+          # cronJob (not the helm default) -- generates certs in-cluster so Flux
+          # reconciles don't rotate them and no key material lands in git.
+          method: cronJob
+      relay:
+        enabled: true
+      ui:
+        enabled: true
+    # Operational hardening.
+    operator:
+      replicas: 2 # survive a node loss (3 control planes)
+      rollOutPods: true
+    rollOutCiliumPods: true
+    # l2announcements is lease-heavy -- give the agent more apiserver headroom.
+    k8sClientRateLimit:
+      qps: 25
+      burst: 50
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
