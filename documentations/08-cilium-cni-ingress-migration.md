@@ -12,6 +12,12 @@ Talos `v1.13.4`, Kubernetes `v1.36.1`, Cilium **`1.19.4`**. Pod CIDR
 > (see §2). The **control plane stays up** the whole time. Do all three nodes
 > in one sitting; never leave the cluster half-migrated.
 
+> ✅ **APPLIED 2026-06-12.** Live state: Cilium 1.19.4 kube-proxy-free,
+> `nexus-lb` = `192.168.1.110`, Gateway `cilium-gw` = `192.168.1.111`,
+> kube-proxy/flannel gone, Longhorn healthy. The cutover hit a **deadlock**
+> (Flux installed Cilium before the Talos prerequisites) — see the Incident
+> section at the bottom. The runbook below is corrected for that ordering.
+
 Config is **talhelper-managed**: edit `bootstraping/talconfig.yaml`, render,
 apply. Commands assume repo root and:
 
@@ -159,22 +165,38 @@ metrics → monitoring tier, native routing (§8).
       kubectl get nodes -o wide                      # 3 Ready
       ```
 
-- [ ] **1. Apply the rendered configs** (cni:none + proxy:disabled + Gateway
-      CRDs). One node at a time is fine; pod network degrades globally from
-      here until Cilium converges.
+> 🔴 **ORDER IS LOAD-BEARING.** Apply the Talos config (Gateway CRDs +
+> `cni:none` + `proxy.disabled`) and confirm the CRDs exist **before** Flux
+> reconciles the cilium HelmRelease. Flux auto-installs on `git push`, so
+> either (a) apply the Talos config *before* pushing the cilium manifests, or
+> (b) push with `infra-cilium` **suspended** (`flux suspend kustomization
+> infra-cilium infra-cilium-config`) and resume after step 1. Letting Flux
+> install Cilium first — before the Gateway CRDs and before kube-proxy is
+> gone — **deadlocked the live cluster on 2026-06-12** (see Incident).
+
+- [ ] **1. Apply the Talos config FIRST** (adds Gateway CRDs via
+      extraManifests, sets `cni:none` + `proxy.disabled`). Flannel + kube-proxy
+      keep running — Talos stops *managing* them but doesn't delete them — so
+      the cluster stays up.
 
       ```bash
       for n in 1 2 3; do talosctl apply-config -n 192.168.1.10$n \
         --file bootstraping/clusterconfig/Homelab_staging-staging-controlplane-$n.yaml; done
+      # GATE: all 5 Gateway CRDs must exist before step 2
+      kubectl get crd gatewayclasses.gateway.networking.k8s.io
       ```
 
-- [ ] **2. Let Flux install Cilium** (push first, then reconcile):
+- [ ] **2. Now let Flux install Cilium** (CRDs present + KubePrism in the chart
+      values → install succeeds; if you pushed earlier with it suspended,
+      `flux resume kustomization infra-cilium`):
 
       ```bash
-      git add -A && git commit && git push
+      git add -A && git commit && git push           # if not already pushed
       flux reconcile kustomization infra-cilium --with-source
       kubectl -n kube-system rollout status ds/cilium --timeout=5m
-      kubectl -n kube-system get pods -l k8s-app=cilium -o wide   # one per node
+      # sanity: KubePrism must be set, or kube-proxy removal (step 3) strands cilium
+      kubectl -n kube-system get cm cilium-config \
+        -o jsonpath='{.data.k8s-service-host}:{.data.k8s-service-port}{"\n"}'  # localhost:7445
       ```
 
 - [ ] **3. Delete the leftovers Talos won't remove:**
@@ -185,10 +207,13 @@ metrics → monitoring tier, native routing (§8).
       ```
 
 - [ ] **4. Clear stale kube-proxy iptables — rolling reboot, ONE node at a
-      time, watch etcd quorum** (never two CPs down; doc 07 discipline):
+      time, watch etcd quorum** (never two CPs down; doc 07 discipline).
+      **Reboot the node hosting `flux-system` + CoreDNS first** — clearing its
+      stale rules is what brings DNS/Flux back fastest (it was `.102` on
+      2026-06-12; check with `kubectl -n flux-system get pods -o wide`):
 
       ```bash
-      talosctl -n 192.168.1.102 reboot          # wait Ready before the next
+      talosctl -n 192.168.1.102 reboot          # flux/coredns home — wait Ready
       kubectl get nodes
       talosctl -n 192.168.1.101 etcd members    # still 3
       # repeat .103, then .101
@@ -326,3 +351,60 @@ rollback is always drivable.
   (step 2). Keep that order.
 - **talhelper render uses the encrypted secret** — always pass
   `SOPS_AGE_KEY_FILE`; never regenerate `talsecret` (new PKI = dead cluster).
+
+---
+
+## 10. Incident & recovery (2026-06-12)
+
+**What went wrong.** The Flux cilium manifests were pushed **before** the Talos
+config was applied. Flux auto-reconciles on push, so it installed the cilium
+HelmRelease while:
+
+1. the Gateway API CRDs did not exist yet (Talos `extraManifests` not applied)
+   → the chart's `cilium` GatewayClass could not be created → HelmRelease wedged
+   in `Running 'install' action`;
+2. an early `release.yaml` revision lacked `k8sServiceHost`/`k8sServicePort`, so
+   cilium ran kube-proxy-replacement with **no KubePrism endpoint**;
+3. `kube-proxy` + `kube-flannel` were still running alongside Cilium.
+
+The KubePrism-less Cilium + coexisting kube-proxy left service VIPs unprogrammed.
+The CoreDNS service `10.96.0.10:53` went `connection refused` → **cluster DNS
+died** → every Flux controller `CrashLoopBackOff` → the source-controller could
+not fetch git → **self-heal deadlock** (the fix was in git, but Flux couldn't
+reach it). Control plane stayed up the whole time (host-network).
+
+**Recovery order that worked** (each step is DNS/Flux-independent until the end):
+
+1. **Restore Cilium's API path** — manual emergency override (Flux was dead):
+
+   ```bash
+   kubectl -n kube-system patch cm cilium-config --type merge \
+     -p '{"data":{"k8s-service-host":"localhost","k8s-service-port":"7445"}}'
+   kubectl -n kube-system rollout restart ds/cilium
+   ```
+
+   KubePrism `:7445` is host-network (always up), so agents reconnect
+   independent of kube-proxy → services program → DNS recovers. (Flux later
+   re-applied the identical value from git — no drift.)
+
+2. **Apply the Talos config** (`talosctl`, host-network — works without cluster
+   DNS): lands the Gateway CRDs (fetched via *node* DNS) + `cni:none` +
+   `proxy.disabled`, unsticking the HelmRelease.
+
+3. **Delete the legacy datapath:** `kubectl -n kube-system delete ds
+   kube-flannel kube-proxy`.
+
+4. **Rolling reboot, node hosting Flux/CoreDNS first** (`.102`), then `.103`,
+   `.101` — clears stale kube-proxy iptables. After the first reboot the
+   GitRepository went `Ready`, controllers recovered, the HelmRelease
+   `UpgradeSucceeded`, and `nexus-lb`/`cilium-gw` got their pool IPs.
+
+5. Post-reboot, outage-backlog pods were stuck in crashloop-backoff; deleting
+   them (or waiting ~10 min) cleared it. Longhorn rebuilt replicas to `healthy`
+   on its own.
+
+**Prevention** (now baked into §5): apply the Talos config and verify the
+Gateway CRDs **before** Flux installs Cilium, and ensure `release.yaml` carries
+`k8sServiceHost: localhost` / `k8sServicePort: 7445` from the first commit.
+Without KubePrism, removing kube-proxy strands Cilium with no API path — fix
+`k8sServiceHost` *before* step 3, never after.

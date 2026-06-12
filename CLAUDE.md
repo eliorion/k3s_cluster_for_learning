@@ -1,17 +1,24 @@
 # k3s cluster for learning
 
-Single-node k3s homelab (`k3s-staging`, Debian 13, 192.168.1.50) managed
-entirely by **Flux GitOps** — never `kubectl apply` resources by hand;
-change the YAML, commit, push, let Flux reconcile.
+3-node bare-metal **Talos Linux** cluster (`Homelab_staging`:
+`staging-controlplane-1/2/3` at `192.168.1.101-103`, API VIP `192.168.1.100`;
+Talos `v1.13.4`, k8s `v1.36.1`, all control planes also run workloads) managed
+entirely by **Flux GitOps** — never `kubectl apply` resources by hand; change
+the YAML, commit, push, let Flux reconcile. (Migrated from a single-node k3s
+box — the repo name is historical; see `documentations/06`–`08`.)
 
 ## Repo layout
 
+- `bootstraping/` — Talos layer: `talconfig.yaml` (talhelper) renders the 3
+  node configs to `clusterconfig/`; secrets in `talsecret.sops.yaml`
 - `clusters/staging/` — Flux entrypoints (Kustomizations pointing at the dirs below)
-- `infrastructure/controllers/` — operators: cert-manager, cnpg, ARC controller
+- `infrastructure/controllers/` — operators: cilium (CNI), cert-manager, cnpg,
+  ARC controller, longhorn
 - `infrastructure/services/` — workloads: nexus, arc-runner-set, cloudflare, renovate
 - `apps/`, `monitoring/` — application and monitoring tiers
-- `documentations/` — numbered guides; `04-ci-runners-cache.md` covers the CI
-  stack, `05-alerting.md` covers Telegram deploy-failure notifications
+- `documentations/` — numbered guides; `04-ci-runners-cache.md` (CI stack),
+  `05-alerting.md` (Telegram deploy-failure alerts), `06`/`07` (Talos +
+  Longhorn migration & HA), `08-cilium-cni-ingress-migration.md` (Cilium CNI)
 - Each tier uses `base/` + `staging/` (+ `production/`) kustomize overlays
 
 ## Conventions
@@ -21,8 +28,14 @@ change the YAML, commit, push, let Flux reconcile.
 - Chart versions are pinned; Renovate bumps them. The two ARC charts
   (`gha-runner-scale-set-controller` and `gha-runner-scale-set`) must stay
   on the same version.
-- Storage class is `local-path`: no volume expansion, and StatefulSet
-  `volumeClaimTemplates` are immutable — changing a PVC size requires
+- Node config is **talhelper**-managed: edit `bootstraping/talconfig.yaml`,
+  render (`SOPS_AGE_KEY_FILE=clusters/staging/age.agekey talhelper genconfig`),
+  `talosctl apply-config`. Never regenerate `talsecret` (new PKI = dead cluster).
+- CNI is **Cilium** `1.19.4`, kube-proxy-free (KubePrism `localhost:7445`),
+  Flux-managed HelmRelease. Bare-metal LoadBalancer via Cilium **LB-IPAM**
+  (pool `192.168.1.110-130`) + L2 announce; Gateway API for L7 ingress (doc 08).
+- Storage is **Longhorn** (storage class `longhorn`, 3 replicas, one per node;
+  doc 07). StatefulSet `volumeClaimTemplates` stay immutable — resizing means
   deleting the StatefulSet + PVC (see doc 04 troubleshooting).
 
 ## CI stack (summary — full detail in documentations/04-ci-runners-cache.md)
@@ -42,4 +55,11 @@ change the YAML, commit, push, let Flux reconcile.
 kubectl kustomize infrastructure/services/staging   # render check before commit
 flux get kustomizations
 flux get helmreleases -A
+```
+
+For Talos node-config changes (`bootstraping/talconfig.yaml`):
+
+```bash
+cd bootstraping && SOPS_AGE_KEY_FILE=../clusters/staging/age.agekey talhelper genconfig
+talosctl validate --config clusterconfig/Homelab_staging-staging-controlplane-1.yaml --mode metal
 ```
