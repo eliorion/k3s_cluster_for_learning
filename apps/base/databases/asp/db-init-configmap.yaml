@@ -10,6 +10,11 @@ data:
     -- Idempotent: safe to run on a clean database or re-run on an existing one.
     -- =============================================================================
 
+    -- postInitApplicationSQL runs as the postgres superuser; without this the
+    -- schema lands owned by postgres and the Flyway job (connecting as app)
+    -- fails with "must be owner of table" (hit 2026-06-12, doc 07).
+    SET ROLE app;
+
     -- ---------------------------------------------------------------------------
     -- listings
     -- Source of truth: data/data/models.py (Listing model, BigPK mixin)

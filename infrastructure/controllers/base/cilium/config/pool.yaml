@@ -1,0 +1,24 @@
+# Bare-metal LoadBalancer IP pool. nexus-lb (and the cilium-gw Gateway) draw
+# external IPs from here; the L2 policy ARP-announces them on the LAN.
+# Range is clear of the API VIP (.100) and node IPs (.101-.103); confirm it is
+# outside the DHCP pool.
+apiVersion: cilium.io/v2
+kind: CiliumLoadBalancerIPPool
+metadata:
+  name: lan-pool
+spec:
+  blocks:
+    - start: "192.168.1.110"
+      stop: "192.168.1.130"
+---
+apiVersion: cilium.io/v2alpha1 # still alpha in Cilium 1.19 (pool is v2)
+kind: CiliumL2AnnouncementPolicy
+metadata:
+  name: lan-l2
+spec:
+  loadBalancerIPs: true
+  interfaces:
+    - ^en.* # bare-metal NICs (enp*/eno*); matches the physical deviceSelector
+  nodeSelector:
+    matchLabels:
+      kubernetes.io/os: linux
