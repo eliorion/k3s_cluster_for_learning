@@ -26,8 +26,8 @@ spec:
     runnerScaleSetName: self-hosted-arc
     # Trimmed from 5/15 to free RAM for the self-hosted-arc-xl pool (release-xl.yaml)
     # on the 50Gi/3-node cluster: keep 2 warm for fast PR feedback, cap at 8.
-    minRunners: 2
-    maxRunners: 8
+    minRunners: 5
+    maxRunners: 10
     # containerMode: dind removed — the auto-injected dind sidecar accepts no
     # extra dockerd flags, so the template below reproduces it manually and
     # adds --insecure-registry for the HTTP-only Nexus docker connectors.

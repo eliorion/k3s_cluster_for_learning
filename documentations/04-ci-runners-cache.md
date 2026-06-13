@@ -132,7 +132,7 @@ For the heavy k3d end-to-end leg, target the dedicated XL pool with
 `e2e-tests.yaml` uses `vars.CI_RUNNER_XL || vars.CI_RUNNER`, so it falls back to
 the default pool until the var is set). The XL pool
 (`arc-runner-set/release-xl.yaml`) gives each runner a bigger dind sidecar
-(4Gi req / 10Gi limit, CPU limit 6) for the in-dind k3d cluster, `minRunners: 1`
+(4Gi req / 10Gi limit, no CPU limit) for the in-dind k3d cluster, `minRunners: 1`
 / `maxRunners: 3`, and a hard one-XL-pod-per-node `podAntiAffinity` so two or
 three concurrent e2e runs never share a node. **Set `CI_RUNNER_XL` only AFTER
 the XL scale set registers healthy** (`kubectl -n arc-systems get pods` shows
@@ -209,11 +209,11 @@ kubectl run pip-test --rm -it --image=python:3.12 -- \
   `maxRunners: 8`; runner 2Gi req / 4Gi limit, dind 2Gi req / 6Gi limit and
   **no CPU limit** (keeps PR builds fast). Trimmed from 5/15 to leave RAM for XL.
 - XL pool (`self-hosted-arc-xl`, `release-xl.yaml`): `minRunners: 1` /
-  `maxRunners: 3`; dind 4Gi req / 10Gi limit + **CPU limit 6**, one pod per node
-  (`podAntiAffinity`). The CPU cap guards etcd — all 3 nodes are control planes
-  and the kubelet sets no `system-reserved`, so an uncapped parallel-build spike
-  could starve it; **tune the cap to the node core count** (a cap ≥ cores is a
-  no-op). At `maxRunners: 3`, a node-down window leaves the 3rd concurrent e2e
+  `maxRunners: 3`; dind 4Gi req / 10Gi limit, **no CPU limit** (compressible —
+  keeps builds fast), one pod per node (`podAntiAffinity`). All 3 nodes are
+  control planes with no kubelet `system-reserved`, so if etcd shows latency
+  under heavy e2e, reserve CPU at the kubelet level rather than capping the
+  build. At `maxRunners: 3`, a node-down window leaves the 3rd concurrent e2e
   Pending (queued, self-heals) — the deliberate safe failure mode.
 - Bump either `maxRunners` when nodes gain headroom; watch `kubectl top pod
   -n arc-runners --containers` during an e2e run to confirm dind peak < limits.

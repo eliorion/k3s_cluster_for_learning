@@ -62,13 +62,12 @@ spec:
           # Native sidecar (restartPolicy: Always on an initContainer). k3d +
           # all the e2e images run INSIDE this container, so it carries the
           # memory budget: 4Gi guaranteed request (k3d steady state stays under
-          # it, eviction-protected), burst to 10Gi for the e2e peak (observed
-          # peak is well under that — e2e already passes on the unbounded default
-          # pool). CPU limit 6 (NOT unbounded): all 3 nodes are control planes
-          # running etcd and the kubelet sets no system-reserved, so an uncapped
-          # parallel-build spike (all 7 images at once) could starve etcd. 6
-          # leaves headroom on >=8-core nodes; tune to the node core count
-          # (a limit >= cores is a no-op, so harmless on smaller boxes).
+          # it, eviction-protected), burst to 10Gi for the e2e peak. No CPU limit
+          # — CPU is compressible, so an uncapped sidecar keeps the parallel
+          # docker builds fast (matches the default pool). Note: all 3 nodes are
+          # control planes with no kubelet system-reserved, so if etcd shows
+          # latency under heavy e2e, reserve CPU at the kubelet level rather than
+          # capping the build here.
           - name: dind
             image: docker:dind
             args:
@@ -99,7 +98,6 @@ spec:
                 cpu: 2
                 memory: 4Gi
               limits:
-                cpu: 6
                 memory: 10Gi
             volumeMounts:
               - name: work
@@ -124,7 +122,6 @@ spec:
                 cpu: 500m
                 memory: 512Mi
               limits:
-                cpu: 2
                 memory: 1Gi
             volumeMounts:
               - name: work
