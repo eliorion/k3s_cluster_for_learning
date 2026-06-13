@@ -70,8 +70,14 @@ spec:
       # topology). A creds-bearing proxy would use urlSecret: {name, key}
       # (secretKeyRef) instead of url.
       proxies:
+        # Route through the in-cluster Tailscale egress proxy (operator-managed)
+        # instead of the raw tailnet IP: scraper -> tailscale-proxy-00 svc -> ts
+        # egress proxy pod -> rsp-asp (100.100.98.5:8888). Decouples from the raw
+        # 100.x IP; no tailscale membership in the scraper pod. REQUIRES the
+        # tailscale-proxy-00 egress pod Ready (kubectl -n tailscale get pods) —
+        # revert this url to http://100.100.98.5:8888 if the proxy is down.
         - name: tailscale
-          url: "http://100.100.98.5:8888"
+          url: "http://tailscale-proxy-00.tailscale.svc.cluster.local:8888"
           sites: [leboncoin]
     adminUi:
       enabled: true
