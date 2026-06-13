@@ -1,17 +1,16 @@
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
-  name: arc-runner-set-asp
+  name: arc-runner-set-asp-xl
   namespace: flux-system
 spec:
   targetNamespace: arc-runners
-  releaseName: arc-runner-set-asp
+  releaseName: arc-runner-set-asp-xl
   interval: 30m
   chart:
     spec:
-      # Must stay in lockstep with the gha-runner-scale-set-controller chart
-      # version in infrastructure/controllers/base/arc/release.yaml.
-      # Renovate keeps this pinned version current.
+      # Same chart + version as the default pool (lockstep with the
+      # gha-runner-scale-set-controller in controllers/base/arc/release.yaml).
       chart: gha-runner-scale-set
       version: "0.14.2"
       sourceRef:
@@ -21,18 +20,35 @@ spec:
       interval: 12h
   values:
     githubConfigUrl: https://github.com/Eliorion/asp
+    # Reuses the same PAT secret as the default pool (both in arc-runners).
     githubConfigSecret: arc-github-pat
-    # `runs-on: self-hosted-arc` in workflow files targets this scale set.
-    runnerScaleSetName: self-hosted-arc
-    # Trimmed from 5/15 to free RAM for the self-hosted-arc-xl pool (release-xl.yaml)
-    # on the 50Gi/3-node cluster: keep 2 warm for fast PR feedback, cap at 8.
-    minRunners: 5
-    maxRunners: 10
-    # containerMode: dind removed — the auto-injected dind sidecar accepts no
-    # extra dockerd flags, so the template below reproduces it manually and
-    # adds --insecure-registry for the HTTP-only Nexus docker connectors.
+    # `runs-on: self-hosted-arc-xl` (CI_RUNNER_XL var) targets this scale set —
+    # the heavy k3d e2e leg. Distinct name from the default pool (must be unique).
+    runnerScaleSetName: self-hosted-arc-xl
+    # Bigger, fewer runners for the full in-dind k3d stack. One warm (min 1);
+    # podAntiAffinity below spreads up to maxRunners=3 one-per-node across the
+    # 3-node cluster so two/three concurrent e2e runs never share a node.
+    minRunners: 1
+    maxRunners: 3
+    # containerMode: dind reproduced manually (same as the default pool) so
+    # dockerd gets --insecure-registry for the HTTP-only Nexus connectors.
     template:
+      metadata:
+        labels:
+          # Self-owned label the podAntiAffinity selector matches (spreads XL
+          # pods across nodes without depending on the chart's auto-labels).
+          runner-tier: xl
       spec:
+        # One XL pod per node: the full k3d stack wants a node mostly to itself
+        # on this 50Gi/3-node cluster. Hard rule — a 4th would stay Pending
+        # (maxRunners is 3 = node count, so that only happens if a node is down).
+        affinity:
+          podAntiAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                  matchLabels:
+                    runner-tier: xl
+                topologyKey: kubernetes.io/hostname
         initContainers:
           # Copies runner externals where the dind container expects them
           # (the chart's containerMode:dind injected this automatically).
@@ -43,7 +59,15 @@ spec:
             volumeMounts:
               - name: dind-externals
                 mountPath: /home/runner/tmpDir
-          # Native sidecar (restartPolicy: Always on an initContainer).
+          # Native sidecar (restartPolicy: Always on an initContainer). k3d +
+          # all the e2e images run INSIDE this container, so it carries the
+          # memory budget: 4Gi guaranteed request (k3d steady state stays under
+          # it, eviction-protected), burst to 10Gi for the e2e peak. No CPU limit
+          # — CPU is compressible, so an uncapped sidecar keeps the parallel
+          # docker builds fast (matches the default pool). Note: all 3 nodes are
+          # control planes with no kubelet system-reserved, so if etcd shows
+          # latency under heavy e2e, reserve CPU at the kubelet level rather than
+          # capping the build here.
           - name: dind
             image: docker:dind
             args:
@@ -69,15 +93,12 @@ spec:
               initialDelaySeconds: 0
               failureThreshold: 24
               periodSeconds: 2
-            # Memory bound so a runaway build can't consume a whole node and
-            # OOM-evict a co-located self-hosted-arc-xl e2e pod (6Gi is generous
-            # for single-service image builds). Deliberately NO cpu limit — CPU
-            # is compressible and these builds are short, so keep PR feedback fast.
             resources:
               requests:
-                memory: 2Gi
+                cpu: 2
+                memory: 4Gi
               limits:
-                memory: 6Gi
+                memory: 10Gi
             volumeMounts:
               - name: work
                 mountPath: /home/runner/_work
@@ -86,6 +107,8 @@ spec:
               - name: dind-externals
                 mountPath: /home/runner/externals
         containers:
+          # The runner only orchestrates (the build/k3d work is in dind), so it
+          # stays small — the 4Gi budget lives on the dind sidecar above.
           - name: runner
             image: ghcr.io/actions/actions-runner:latest
             command: ["/home/runner/run.sh"]
@@ -96,10 +119,10 @@ spec:
                 value: "120"
             resources:
               requests:
-                cpu: 2
-                memory: 2Gi
+                cpu: 500m
+                memory: 512Mi
               limits:
-                memory: 4Gi
+                memory: 1Gi
             volumeMounts:
               - name: work
                 mountPath: /home/runner/_work
