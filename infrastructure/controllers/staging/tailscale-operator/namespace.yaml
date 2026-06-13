@@ -2,3 +2,11 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: tailscale
+  labels:
+    # Talos enforces baseline PodSecurity cluster-wide; tailscale proxy pods need
+    # NET_ADMIN (kernel networking), which baseline forbids -> the StatefulSets
+    # create zero pods. Opt this ns out to privileged so the operator's proxies
+    # can be created.
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/warn: privileged
+    pod-security.kubernetes.io/audit: privileged
