@@ -127,6 +127,18 @@ No manual UI/REST setup — repositories live in
 
 Target the scale set with `runs-on: self-hosted-arc`.
 
+For the heavy k3d end-to-end leg, target the dedicated XL pool with
+`runs-on: self-hosted-arc-xl` (wired via the `CI_RUNNER_XL` repo variable;
+`e2e-tests.yaml` uses `vars.CI_RUNNER_XL || vars.CI_RUNNER`, so it falls back to
+the default pool until the var is set). The XL pool
+(`arc-runner-set/release-xl.yaml`) gives each runner a bigger dind sidecar
+(4Gi req / 10Gi limit, CPU limit 6) for the in-dind k3d cluster, `minRunners: 1`
+/ `maxRunners: 3`, and a hard one-XL-pod-per-node `podAntiAffinity` so two or
+three concurrent e2e runs never share a node. **Set `CI_RUNNER_XL` only AFTER
+the XL scale set registers healthy** (`kubectl -n arc-systems get pods` shows
+its `arc-runner-set-asp-xl-...-listener`) — setting it before the listener is up
+would strand e2e jobs with no runner.
+
 ### Python (pip via Nexus proxy)
 
 ```yaml
@@ -189,12 +201,22 @@ kubectl run pip-test --rm -it --image=python:3.12 -- \
   --trusted-host nexus.nexus.svc requests
 ```
 
-## Sizing notes (single-node)
+## Sizing notes (3-node, ~50Gi total)
 
 - Nexus: 1–2g JVM heap, 2.5Gi memory limit, 80Gi PVC. Raise
   `install4jAddVmParams` and the limit together if it OOMs.
-- Runners: max 5 concurrent pods, 2Gi request / 4Gi limit each. Bump
-  `maxRunners` in `arc-runner-set/release.yaml` when the node has headroom.
+- Default pool (`self-hosted-arc`, `release.yaml`): `minRunners: 2` /
+  `maxRunners: 8`; runner 2Gi req / 4Gi limit, dind 2Gi req / 6Gi limit and
+  **no CPU limit** (keeps PR builds fast). Trimmed from 5/15 to leave RAM for XL.
+- XL pool (`self-hosted-arc-xl`, `release-xl.yaml`): `minRunners: 1` /
+  `maxRunners: 3`; dind 4Gi req / 10Gi limit + **CPU limit 6**, one pod per node
+  (`podAntiAffinity`). The CPU cap guards etcd — all 3 nodes are control planes
+  and the kubelet sets no `system-reserved`, so an uncapped parallel-build spike
+  could starve it; **tune the cap to the node core count** (a cap ≥ cores is a
+  no-op). At `maxRunners: 3`, a node-down window leaves the 3rd concurrent e2e
+  Pending (queued, self-heals) — the deliberate safe failure mode.
+- Bump either `maxRunners` when nodes gain headroom; watch `kubectl top pod
+  -n arc-runners --containers` during an e2e run to confirm dind peak < limits.
 
 ## Troubleshooting
 
