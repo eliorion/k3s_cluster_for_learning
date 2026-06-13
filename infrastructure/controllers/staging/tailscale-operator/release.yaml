@@ -9,10 +9,9 @@ spec:
   chart:
     spec:
       chart: tailscale-operator
-      # TODO: confirm the current chart version at
-      # https://pkgs.tailscale.com/helmcharts (helm search repo tailscale).
-      # Renovate keeps it pinned/current after the first install.
-      version: "1.82.0"
+      # Latest stable, verified against https://pkgs.tailscale.com/helmcharts.
+      # Renovate keeps it current after the first install.
+      version: "1.98.4"
       sourceRef:
         kind: HelmRepository
         name: tailscale
