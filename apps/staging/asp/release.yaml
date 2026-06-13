@@ -75,5 +75,13 @@ spec:
           sites: [leboncoin]
     adminUi:
       enabled: true
+      service:
+        # Publish the admin UI on the tailnet via the Tailscale operator —
+        # authed + reachable off-LAN, never internet-exposed. Inert until the
+        # operator is installed (infrastructure/controllers/staging/tailscale-operator).
+        # Reach at https://asp-admin-ui.<your-tailnet>.ts.net
+        annotations:
+          tailscale.com/expose: "true"
+          tailscale.com/hostname: asp-admin-ui
     webapp:
       enable: true

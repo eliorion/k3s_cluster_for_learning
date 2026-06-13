@@ -45,3 +45,12 @@ spec:
         - name: ghcr-pull-secret
     # No scraper.proxies here → Cloudflare will block the staging IP. Add a
     # residential proxy entry (see k8s/charts/fbref/README.md) to ingest data.
+    adminUi:
+      service:
+        # Publish on the tailnet via the Tailscale operator — authed, off-LAN,
+        # never internet-exposed. Inert until the operator is installed
+        # (infrastructure/controllers/staging/tailscale-operator).
+        # Reach at https://fbref-admin-ui.<your-tailnet>.ts.net
+        annotations:
+          tailscale.com/expose: "true"
+          tailscale.com/hostname: fbref-admin-ui

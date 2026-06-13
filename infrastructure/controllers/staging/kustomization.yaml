@@ -2,3 +2,7 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - cnpg/
+  # Tailscale operator — exposes the asp/fbref admin UIs on the tailnet.
+  # Uncomment AFTER creating tailscale-operator/operator-oauth.enc.yaml
+  # (copy + fill + sops-encrypt the .example). See tailscale-operator/README.md.
+  - tailscale-operator/

@@ -1,0 +1,35 @@
+# Tailscale operator EGRESS proxies — reach a tailnet device FROM the cluster via
+# a local Service. The operator runs a proxy pod (a tailnet member) and points
+# this ExternalName Service at it; cluster apps dial the local name and traffic
+# exits to the tailnet target. The TCP port is preserved end-to-end.
+#
+# Consume from ANY namespace:
+#   http://tailscale-proxy-00.tailscale.svc.cluster.local:8888
+#
+# Add more exits by copying the block, bumping the number + target IP. This is
+# the central proxy pool — asp/fbref lanes point PROXY_URL at these local svcs
+# instead of raw 100.x tailnet IPs.
+apiVersion: v1
+kind: Service
+metadata:
+  name: tailscale-proxy-00
+  namespace: tailscale
+  annotations:
+    # Target the residential HTTP proxy node by its tailnet (100.x) IP.
+    tailscale.com/tailnet-ip: "100.100.98.5"
+spec:
+  type: ExternalName
+  externalName: placeholder # operator overwrites with the egress proxy's svc DNS
+---
+# tailscale-proxy-01 — second residential exit (example). Uncomment + set the IP
+# when you add it, then add a matching scraper proxy lane in the app HelmRelease.
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: tailscale-proxy-01
+#   namespace: tailscale
+#   annotations:
+#     tailscale.com/tailnet-ip: "100.x.y.z"
+# spec:
+#   type: ExternalName
+#   externalName: placeholder

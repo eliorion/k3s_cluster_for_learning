@@ -1,0 +1,33 @@
+# TEMPLATE — this is NOT encrypted and NOT wired in. To activate:
+#   1. In the Tailscale admin console (Settings → OAuth clients) create a client
+#      with scopes:  Devices Core = write,  Auth Keys = write
+#      and tag it:   tag:k8s-operator   (define that tag in your ACL first — see README.md)
+#   2. cp operator-oauth.enc.yaml.example operator-oauth.enc.yaml
+#   3. paste the real client id/secret below in the copy
+#   4. sops --encrypt --in-place operator-oauth.enc.yaml
+#      (.sops.yaml auto-selects the staging age recipient by the staging/ path)
+#   5. add `- operator-oauth.enc.yaml` is ALREADY in kustomization.yaml; just
+#      uncomment `- tailscale-operator/` in ../kustomization.yaml and commit.
+apiVersion: v1
+kind: Secret
+metadata:
+    name: operator-oauth
+    namespace: tailscale
+stringData:
+    client_id: ENC[AES256_GCM,data:jqV4aXeBEAgwbVGIVEzyHQg=,iv:bKwCR2vF4Ic+gSK9+4YeV9jljGGcHAnzo9RO/QyKzZ8=,tag:pZWxJT819Jc0UdEy9kTshQ==,type:str]
+    client_secret: ENC[AES256_GCM,data:2th4397D1FBdt1l5uw8W16mnopobDOnxtJwyCbfr8KhagBOwSya5PGHRab1+PnR5Cw5zpF8NEYj2tBfS8w==,iv:Lvx0ALUNhmG4bGirX2Zv+3qCbKokWuLCMX8CLlUaSCM=,tag:c96ezwhFV3+nOc4f63bjyQ==,type:str] #ENC[AES256_GCM,data:g4expbCiUBdCS9NItHG8gs6APIi3XVpdFw==,iv:zxPTufo0BQ5bNWfOCr/SkzD1CnqBnEbaAIat3GVPdwU=,tag:zY4vAbY5leCeCXHHsEhKpA==,type:comment]
+sops:
+    age:
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBnWTZraUpOZk96cktaU1NQ
+            Ulpyb3BWR1hWa3pZWWhzTHRNeW1WaXdrZ0FRCkNUd0RhUFp0b1E1YnpTdVZiZ2sy
+            RVQ1SFFBc2NNa1FKRzdGTW56WG01aXMKLS0tIDJGanU2aVFzUEt0YWZsbVo1Qk1o
+            RkxGWS9MT25OQnVuSHhWV0kvcFp1Y2cKDQXY0UWuQP/V/ya5NpRtnQzWNwfglQCn
+            l9MpIh6+TJmLz+eGVfj6bmbIFLrs1p0LoeJEF+PiGrNk2C/vspdp/w==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age137z0k38fp0keu5ns4005e7cv4qlwt320wyf96y48a57sv42k6v9szh5ng3
+    encrypted_regex: ^(data|stringData)$
+    lastmodified: "2026-06-13T08:09:47Z"
+    mac: ENC[AES256_GCM,data:Dr7qcb7+NIQ0us5I++M5ZZ/brfRiREXgLUsjk+TfJeHq0eryi7hKrtShI4d46FgXfH5OA1mpP0yKeUno9MEQHFdLEAFVCE3rkfsqbOkZT1al1ITBqRxJyR8QIMp5tu5v12ph7ZA92igE6E/ElMbZtiLDND0flCck2Y3YBbyywkc=,iv:ol5EBHRptNGh11VMLQ203qL320lnp6gdQUy5OQQw4B4=,tag:HrCXhJbG3GSoWeGFdjRo7w==,type:str]
+    version: 3.13.1
