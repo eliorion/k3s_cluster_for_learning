@@ -205,9 +205,9 @@ kubectl run pip-test --rm -it --image=python:3.12 -- \
 
 - Nexus: 1–2g JVM heap, 2.5Gi memory limit, 80Gi PVC. Raise
   `install4jAddVmParams` and the limit together if it OOMs.
-- Default pool (`self-hosted-arc`, `release.yaml`): `minRunners: 2` /
-  `maxRunners: 8`; runner 2Gi req / 4Gi limit, dind 2Gi req / 6Gi limit and
-  **no CPU limit** (keeps PR builds fast). Trimmed from 5/15 to leave RAM for XL.
+- Default pool (`self-hosted-arc`, `release.yaml`): `minRunners: 5` /
+  `maxRunners: 10`; runner 2Gi req / 4Gi limit, dind 2Gi req / 6Gi limit and
+  **no CPU limit** (keeps PR builds fast). Max capped from 15 to 10 to leave RAM for XL.
 - XL pool (`self-hosted-arc-xl`, `release-xl.yaml`): `minRunners: 1` /
   `maxRunners: 3`; dind 4Gi req / 10Gi limit, **no CPU limit** (compressible —
   keeps builds fast), one pod per node (`podAntiAffinity`). All 3 nodes are
