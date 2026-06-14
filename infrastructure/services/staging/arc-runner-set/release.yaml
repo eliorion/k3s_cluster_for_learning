@@ -28,7 +28,7 @@ spec:
     # (release-xl.yaml) on the 50Gi/3-node cluster; 5 warm runners kept for fast
     # PR feedback.
     minRunners: 5
-    maxRunners: 10
+    maxRunners: 8
     # containerMode: dind removed — the auto-injected dind sidecar accepts no
     # extra dockerd flags, so the template below reproduces it manually and
     # adds --insecure-registry for the HTTP-only Nexus docker connectors.
@@ -76,7 +76,7 @@ spec:
             # is compressible and these builds are short, so keep PR feedback fast.
             resources:
               requests:
-                memory: 2Gi
+                memory: 1Gi
               limits:
                 memory: 6Gi
             volumeMounts:
@@ -97,7 +97,6 @@ spec:
                 value: "120"
             resources:
               requests:
-                cpu: 2
                 memory: 2Gi
               limits:
                 memory: 4Gi
